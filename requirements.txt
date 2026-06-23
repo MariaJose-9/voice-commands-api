@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+PyYAML
+RapidFuzz
+sentence-transformers
+numpy
+pytest
+httpx

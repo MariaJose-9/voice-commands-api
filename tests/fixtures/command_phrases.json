@@ -1,0 +1,438 @@
+[
+  {
+    "text": "monitor one",
+    "expected": [{"command": "SELECT_MONITOR", "monitor": 1}]
+  },
+  {
+    "text": "screen 1",
+    "expected": [{"command": "SELECT_MONITOR", "monitor": 1}]
+  },
+  {
+    "text": "primer monitor",
+    "expected": [{"command": "SELECT_MONITOR", "monitor": 1}]
+  },
+  {
+    "text": "monitor dos",
+    "expected": [{"command": "SELECT_MONITOR", "monitor": 2}]
+  },
+  {
+    "text": "left",
+    "expected": [{"command": "MOVE_LEFT"}]
+  },
+  {
+    "text": "move left",
+    "expected": [{"command": "MOVE_LEFT"}]
+  },
+  {
+    "text": "izquierda",
+    "expected": [{"command": "MOVE_LEFT"}]
+  },
+  {
+    "text": "ponlo a la izquierda",
+    "expected": [{"command": "MOVE_LEFT"}]
+  },
+  {
+    "text": "right",
+    "expected": [{"command": "MOVE_RIGHT"}]
+  },
+  {
+    "text": "move right",
+    "expected": [{"command": "MOVE_RIGHT"}]
+  },
+  {
+    "text": "derecha",
+    "expected": [{"command": "MOVE_RIGHT"}]
+  },
+  {
+    "text": "ponlo a la derecha",
+    "expected": [{"command": "MOVE_RIGHT"}]
+  },
+  {
+    "text": "up",
+    "expected": [{"command": "MOVE_UP"}]
+  },
+  {
+    "text": "move up",
+    "expected": [{"command": "MOVE_UP"}]
+  },
+  {
+    "text": "arriba",
+    "expected": [{"command": "MOVE_UP"}]
+  },
+  {
+    "text": "mover hacia arriba",
+    "expected": [{"command": "MOVE_UP"}]
+  },
+  {
+    "text": "down",
+    "expected": [{"command": "MOVE_DOWN"}]
+  },
+  {
+    "text": "move down",
+    "expected": [{"command": "MOVE_DOWN"}]
+  },
+  {
+    "text": "abajo",
+    "expected": [{"command": "MOVE_DOWN"}]
+  },
+  {
+    "text": "mover hacia abajo",
+    "expected": [{"command": "MOVE_DOWN"}]
+  },
+  {
+    "text": "zoom in",
+    "expected": [{"command": "ZOOM_IN"}]
+  },
+  {
+    "text": "haz zoom",
+    "expected": [{"command": "ZOOM_IN"}]
+  },
+  {
+    "text": "acercar",
+    "expected": [{"command": "ZOOM_IN"}]
+  },
+  {
+    "text": "acercalo",
+    "expected": [{"command": "ZOOM_IN"}]
+  },
+  {
+    "text": "zoom out",
+    "expected": [{"command": "ZOOM_OUT"}]
+  },
+  {
+    "text": "alejar",
+    "expected": [{"command": "ZOOM_OUT"}]
+  },
+  {
+    "text": "quitar zoom",
+    "expected": [{"command": "ZOOM_OUT"}]
+  },
+  {
+    "text": "zoom out please",
+    "expected": [{"command": "ZOOM_OUT"}]
+  },
+  {
+    "text": "increase",
+    "expected": [{"command": "INCREASE_SIZE"}]
+  },
+  {
+    "text": "increase size",
+    "expected": [{"command": "INCREASE_SIZE"}]
+  },
+  {
+    "text": "aumenta",
+    "expected": [{"command": "INCREASE_SIZE"}]
+  },
+  {
+    "text": "agranda",
+    "expected": [{"command": "INCREASE_SIZE"}]
+  },
+  {
+    "text": "decrease",
+    "expected": [{"command": "DECREASE_SIZE"}]
+  },
+  {
+    "text": "reduce size",
+    "expected": [{"command": "DECREASE_SIZE"}]
+  },
+  {
+    "text": "disminuye",
+    "expected": [{"command": "DECREASE_SIZE"}]
+  },
+  {
+    "text": "reduce",
+    "expected": [{"command": "DECREASE_SIZE"}]
+  },
+  {
+    "text": "55 inch",
+    "expected": [{"command": "SET_SIZE", "size_inches": 55}]
+  },
+  {
+    "text": "65 inches",
+    "expected": [{"command": "SET_SIZE", "size_inches": 65}]
+  },
+  {
+    "text": "ponlo en 75 pulgadas",
+    "expected": [{"command": "SET_SIZE", "size_inches": 75}]
+  },
+  {
+    "text": "tamano 95",
+    "expected": [{"command": "SET_SIZE", "size_inches": 95}]
+  },
+  {
+    "text": "follow me",
+    "expected": [{"command": "FOLLOW_ME"}]
+  },
+  {
+    "text": "sigueme",
+    "expected": [{"command": "FOLLOW_ME"}]
+  },
+  {
+    "text": "que me siga",
+    "expected": [{"command": "FOLLOW_ME"}]
+  },
+  {
+    "text": "make it follow me",
+    "expected": [{"command": "FOLLOW_ME"}]
+  },
+  {
+    "text": "stop follow me",
+    "expected": [{"command": "STOP_FOLLOW_ME"}]
+  },
+  {
+    "text": "detener seguimiento",
+    "expected": [{"command": "STOP_FOLLOW_ME"}]
+  },
+  {
+    "text": "parar seguimiento",
+    "expected": [{"command": "STOP_FOLLOW_ME"}]
+  },
+  {
+    "text": "desactivar seguimiento",
+    "expected": [{"command": "STOP_FOLLOW_ME"}]
+  },
+  {
+    "text": "recenter objects",
+    "expected": [{"command": "RECENTER_OBJECTS"}]
+  },
+  {
+    "text": "center objects",
+    "expected": [{"command": "RECENTER_OBJECTS"}]
+  },
+  {
+    "text": "recentrar objetos",
+    "expected": [{"command": "RECENTER_OBJECTS"}]
+  },
+  {
+    "text": "centrar objetos",
+    "expected": [{"command": "RECENTER_OBJECTS"}]
+  },
+  {
+    "text": "reset position",
+    "expected": [{"command": "RESET_POSITION"}]
+  },
+  {
+    "text": "please reset position",
+    "expected": [{"command": "RESET_POSITION"}]
+  },
+  {
+    "text": "restaurar posicion",
+    "expected": [{"command": "RESET_POSITION"}]
+  },
+  {
+    "text": "posicion inicial",
+    "expected": [{"command": "RESET_POSITION"}]
+  },
+  {
+    "text": "layout one",
+    "expected": [{"command": "SET_LAYOUT", "layout": 1}]
+  },
+  {
+    "text": "primer layout",
+    "expected": [{"command": "SET_LAYOUT", "layout": 1}]
+  },
+  {
+    "text": "layout 2",
+    "expected": [{"command": "SET_LAYOUT", "layout": 2}]
+  },
+  {
+    "text": "segundo layout",
+    "expected": [{"command": "SET_LAYOUT", "layout": 2}]
+  },
+  {
+    "text": "show aitrol",
+    "expected": [{"command": "SHOW_AITROL"}]
+  },
+  {
+    "text": "open aitrol",
+    "expected": [{"command": "SHOW_AITROL"}]
+  },
+  {
+    "text": "mostrar aitrol",
+    "expected": [{"command": "SHOW_AITROL"}]
+  },
+  {
+    "text": "abre aitrol",
+    "expected": [{"command": "SHOW_AITROL"}]
+  },
+  {
+    "text": "close aitrol",
+    "expected": [{"command": "CLOSE_AITROL"}]
+  },
+  {
+    "text": "please close aitrol",
+    "expected": [{"command": "CLOSE_AITROL"}]
+  },
+  {
+    "text": "cerrar aitrol",
+    "expected": [{"command": "CLOSE_AITROL"}]
+  },
+  {
+    "text": "cierra aitrol",
+    "expected": [{"command": "CLOSE_AITROL"}]
+  },
+  {
+    "text": "show voice commands",
+    "expected": [{"command": "SHOW_VOICE_COMMANDS"}]
+  },
+  {
+    "text": "show voice command",
+    "expected": [{"command": "SHOW_VOICE_COMMANDS"}]
+  },
+  {
+    "text": "mostrar comandos de voz",
+    "expected": [{"command": "SHOW_VOICE_COMMANDS"}]
+  },
+  {
+    "text": "please show voice commands",
+    "expected": [{"command": "SHOW_VOICE_COMMANDS"}]
+  },
+  {
+    "text": "close voice commands",
+    "expected": [{"command": "CLOSE_VOICE_COMMANDS"}]
+  },
+  {
+    "text": "close voice command",
+    "expected": [{"command": "CLOSE_VOICE_COMMANDS"}]
+  },
+  {
+    "text": "cerrar comandos de voz",
+    "expected": [{"command": "CLOSE_VOICE_COMMANDS"}]
+  },
+  {
+    "text": "please close voice commands",
+    "expected": [{"command": "CLOSE_VOICE_COMMANDS"}]
+  },
+  {
+    "text": "settings",
+    "expected": [{"command": "OPEN_SETTINGS"}]
+  },
+  {
+    "text": "ajustes",
+    "expected": [{"command": "OPEN_SETTINGS"}]
+  },
+  {
+    "text": "configuracion",
+    "expected": [{"command": "OPEN_SETTINGS"}]
+  },
+  {
+    "text": "abre configuracion",
+    "expected": [{"command": "OPEN_SETTINGS"}]
+  },
+  {
+    "text": "capture",
+    "expected": [{"command": "CAPTURE"}]
+  },
+  {
+    "text": "screenshot",
+    "expected": [{"command": "CAPTURE"}]
+  },
+  {
+    "text": "captura",
+    "expected": [{"command": "CAPTURE"}]
+  },
+  {
+    "text": "pantallazo",
+    "expected": [{"command": "CAPTURE"}]
+  },
+  {
+    "text": "stream",
+    "expected": [{"command": "START_STREAM"}]
+  },
+  {
+    "text": "start stream",
+    "expected": [{"command": "START_STREAM"}]
+  },
+  {
+    "text": "iniciar stream",
+    "expected": [{"command": "START_STREAM"}]
+  },
+  {
+    "text": "transmitir",
+    "expected": [{"command": "START_STREAM"}]
+  },
+  {
+    "text": "record",
+    "expected": [{"command": "START_RECORDING"}]
+  },
+  {
+    "text": "start recording",
+    "expected": [{"command": "START_RECORDING"}]
+  },
+  {
+    "text": "grabar",
+    "expected": [{"command": "START_RECORDING"}]
+  },
+  {
+    "text": "iniciar grabacion",
+    "expected": [{"command": "START_RECORDING"}]
+  },
+  {
+    "text": "stop stream",
+    "expected": [{"command": "STOP_STREAM"}]
+  },
+  {
+    "text": "stop streaming",
+    "expected": [{"command": "STOP_STREAM"}]
+  },
+  {
+    "text": "detener stream",
+    "expected": [{"command": "STOP_STREAM"}]
+  },
+  {
+    "text": "detener transmision",
+    "expected": [{"command": "STOP_STREAM"}]
+  },
+  {
+    "text": "stop",
+    "expected": [{"command": "STOP_ACTIVE"}]
+  },
+  {
+    "text": "detener",
+    "expected": [{"command": "STOP_ACTIVE"}]
+  },
+  {
+    "text": "parar",
+    "expected": [{"command": "STOP_ACTIVE"}]
+  },
+  {
+    "text": "cancelar",
+    "expected": [{"command": "STOP_ACTIVE"}]
+  },
+  {
+    "text": "monitor two and zoom in",
+    "expected": [
+      {"command": "SELECT_MONITOR", "monitor": 2},
+      {"command": "ZOOM_IN"}
+    ]
+  },
+  {
+    "text": "monitor uno y acercalo",
+    "expected": [
+      {"command": "SELECT_MONITOR", "monitor": 1},
+      {"command": "ZOOM_IN"}
+    ]
+  },
+  {
+    "text": "monitor dos, muevelo a la izquierda y ponlo en 65 pulgadas",
+    "expected": [
+      {"command": "SELECT_MONITOR", "monitor": 2},
+      {"command": "MOVE_LEFT"},
+      {"command": "SET_SIZE", "size_inches": 65}
+    ]
+  },
+  {
+    "text": "open aitrol and show voice commands",
+    "expected": [
+      {"command": "SHOW_AITROL"},
+      {"command": "SHOW_VOICE_COMMANDS"}
+    ]
+  },
+  {
+    "text": "stop stream and reset position",
+    "expected": [
+      {"command": "STOP_STREAM"},
+      {"command": "RESET_POSITION"}
+    ]
+  }
+]

@@ -1,0 +1,367 @@
+commands:
+  - command: SELECT_MONITOR
+    description: Selects a monitor by number.
+    requires_entities:
+      - monitor
+    examples:
+      - monitor one
+      - monitor 1
+      - select monitor one
+      - choose monitor one
+      - first monitor
+      - screen one
+      - monitor two
+      - monitor 2
+      - select monitor two
+      - choose monitor two
+      - second monitor
+      - screen two
+      - monitor uno
+      - monitor 1
+      - selecciona monitor uno
+      - primer monitor
+      - pantalla uno
+      - monitor dos
+      - selecciona monitor dos
+      - segundo monitor
+      - pantalla dos
+
+  - command: MOVE_LEFT
+    description: Moves the selected monitor or object to the left.
+    priority: 40
+    examples:
+      - left
+      - move left
+      - move monitor left
+      - move it left
+      - send it left
+      - to the left
+      - izquierda
+      - mueve a la izquierda
+      - mover a la izquierda
+      - ponlo a la izquierda
+
+  - command: MOVE_RIGHT
+    description: Moves the selected monitor or object to the right.
+    priority: 40
+    examples:
+      - right
+      - move right
+      - move monitor right
+      - move it right
+      - send it right
+      - to the right
+      - derecha
+      - mueve a la derecha
+      - mover a la derecha
+      - ponlo a la derecha
+
+  - command: MOVE_UP
+    description: Moves the selected monitor or object upward.
+    priority: 40
+    examples:
+      - up
+      - move up
+      - move monitor up
+      - move it up
+      - arriba
+      - mueve arriba
+      - mover hacia arriba
+      - súbelo
+      - subelo
+
+  - command: MOVE_DOWN
+    description: Moves the selected monitor or object downward.
+    priority: 40
+    examples:
+      - down
+      - move down
+      - move monitor down
+      - move it down
+      - abajo
+      - mueve abajo
+      - mover hacia abajo
+      - bájalo
+      - bajalo
+
+  - command: ZOOM_IN
+    description: Zooms in or brings the selected monitor view closer.
+    examples:
+      - zoom in
+      - get closer
+      - make it closer
+      - enlarge view
+      - acercar
+      - haz zoom
+      - agranda la vista
+      - acercalo
+      - acércalo
+
+  - command: ZOOM_OUT
+    description: Zooms out or moves the selected monitor view farther away.
+    examples:
+      - zoom out
+      - move away
+      - make it farther
+      - reduce zoom
+      - alejar
+      - quitar zoom
+      - reduce el zoom
+      - aléjalo
+      - alejamiento
+
+  - command: INCREASE_SIZE
+    description: Increases the size of the selected monitor or object.
+    examples:
+      - increase
+      - make it bigger
+      - enlarge
+      - bigger
+      - increase size
+      - aumenta
+      - agranda
+      - hacerlo más grande
+      - hazlo más grande
+      - aumenta el tamaño
+
+  - command: DECREASE_SIZE
+    description: Decreases the size of the selected monitor or object.
+    examples:
+      - decrease
+      - make it smaller
+      - reduce size
+      - smaller
+      - shrink
+      - disminuye
+      - reduce
+      - hazlo más pequeño
+      - hacerlo más pequeño
+      - disminuye el tamaño
+
+  - command: SET_SIZE
+    description: Sets the monitor size to a supported inches preset.
+    requires_entities:
+      - size_inches
+    examples:
+      - 55 inch
+      - 65 inch
+      - 75 inch
+      - 95 inch
+      - 120 inch
+      - 55 inches
+      - 65 inches
+      - 75 inches
+      - 95 inches
+      - 120 inches
+      - set 55 inches
+      - set 65 inches
+      - set 75 inches
+      - set 95 inches
+      - set 120 inches
+      - ponlo en 55 pulgadas
+      - ponlo en 65 pulgadas
+      - ponlo en 75 pulgadas
+      - ponlo en 95 pulgadas
+      - ponlo en 120 pulgadas
+      - tamaño 55
+      - tamaño 65
+      - tamaño 75
+      - tamaño 95
+      - tamaño 120
+
+  - command: FOLLOW_ME
+    description: Enables follow-me tracking behavior.
+    priority: 50
+    examples:
+      - follow me
+      - follow my position
+      - track me
+      - make it follow me
+      - sígueme
+      - sigueme
+      - que me siga
+      - seguirme
+      - activar seguimiento
+
+  - command: STOP_FOLLOW_ME
+    description: Disables follow-me tracking behavior.
+    priority: 100
+    examples:
+      - stop follow me
+      - stop following me
+      - stop tracking me
+      - disable follow me
+      - deja de seguirme
+      - detener seguimiento
+      - parar seguimiento
+      - desactivar seguimiento
+
+  - command: RECENTER_OBJECTS
+    description: Re-centers monitors or objects.
+    priority: 90
+    examples:
+      - recenter objects
+      - center objects
+      - center monitors
+      - recenter monitors
+      - put objects in center
+      - center everything
+      - recentrar objetos
+      - centrar objetos
+      - centra los monitores
+      - recentra los monitores
+      - pon todo en el centro
+
+  - command: RESET_POSITION
+    description: Restores monitors or objects to their initial position.
+    examples:
+      - reset position
+      - restore position
+      - initial position
+      - go back to initial position
+      - reset monitors
+      - restaurar posición
+      - posicion inicial
+      - posición inicial
+      - resetear posición
+      - volver al inicio
+
+  - command: SET_LAYOUT
+    description: Selects a layout by number.
+    requires_entities:
+      - layout
+    examples:
+      - layout one
+      - layout 1
+      - first layout
+      - layout two
+      - layout 2
+      - second layout
+      - layout uno
+      - layout 1
+      - primer layout
+      - layout dos
+      - layout 2
+      - segundo layout
+
+  - command: SHOW_AITROL
+    description: Opens or shows the AITROL application.
+    examples:
+      - show aitrol
+      - open aitrol
+      - display aitrol
+      - abre aitrol
+      - mostrar aitrol
+      - abre la app aitrol
+
+  - command: CLOSE_AITROL
+    description: Closes or hides the AITROL application.
+    examples:
+      - close aitrol
+      - hide aitrol
+      - cerrar aitrol
+      - cierra aitrol
+      - ocultar aitrol
+
+  - command: SHOW_VOICE_COMMANDS
+    description: Opens the voice commands panel.
+    examples:
+      - show voice commands
+      - show voice command
+      - open voice commands
+      - open voice command panel
+      - show commands
+      - mostrar comandos de voz
+      - abre comandos de voz
+      - abre el panel de comandos
+      - mostrar panel de comandos de voz
+
+  - command: CLOSE_VOICE_COMMANDS
+    description: Closes the voice commands panel.
+    examples:
+      - close voice commands
+      - close voice command
+      - hide voice commands
+      - close voice command panel
+      - cerrar comandos de voz
+      - cierra comandos de voz
+      - ocultar comandos de voz
+      - cerrar panel de comandos de voz
+
+  - command: OPEN_SETTINGS
+    description: Opens the settings or configuration panel.
+    examples:
+      - settings
+      - open settings
+      - show settings
+      - configuration
+      - ajustes
+      - abrir ajustes
+      - configuración
+      - configuracion
+      - abre configuración
+      - abre configuracion
+
+  - command: CAPTURE
+    description: Captures a screenshot or image.
+    examples:
+      - capture
+      - screenshot
+      - take capture
+      - take screenshot
+      - captura
+      - tomar captura
+      - sacar captura
+      - pantallazo
+
+  - command: START_STREAM
+    description: Starts live streaming or transmission.
+    examples:
+      - stream
+      - start stream
+      - start streaming
+      - begin stream
+      - iniciar stream
+      - empezar stream
+      - transmitir
+      - iniciar transmisión
+      - iniciar transmision
+
+  - command: START_RECORDING
+    description: Starts a recording session.
+    examples:
+      - record
+      - start recording
+      - begin recording
+      - recording
+      - grabar
+      - iniciar grabación
+      - iniciar grabacion
+      - empezar a grabar
+
+  - command: STOP_STREAM
+    description: Stops live streaming or transmission.
+    priority: 100
+    examples:
+      - stop stream
+      - stop streaming
+      - end stream
+      - stop transmission
+      - detener stream
+      - parar stream
+      - detener transmisión
+      - detener transmision
+
+  - command: STOP_ACTIVE
+    description: Stops the current active action.
+    priority: 80
+    examples:
+      - stop
+      - cancel
+      - stop action
+      - stop current action
+      - detener
+      - parar
+      - cancelar
+      - detener acción
+      - detener accion
