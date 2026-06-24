@@ -4,7 +4,7 @@ from app.schemas import CommandName, MatchMethod
 
 
 def test_match_by_fuzzy_does_not_return_entity_only_command_without_entities() -> None:
-    command = match_by_fuzzy(normalize_text("monitr one"))
+    command = match_by_fuzzy(normalize_text("mntor one"))
     assert command is None
 
 

@@ -68,7 +68,7 @@ def _install_fake_semantic_index(monkeypatch):
         "follow me": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
         "follow my movement": [0.0, 0.0, 0.0, 0.0, 0.0, 0.08, 0.92, 0.0],
         "monitor one": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        "monitr one": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        "mntor one": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
         "totally unknown request": [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
         "weak maybe command": [0.8, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0.0],
     }
@@ -198,7 +198,7 @@ def test_match_by_semantic_returns_none_below_confirmation_threshold(monkeypatch
 
 def test_match_by_semantic_skips_entity_only_without_entities(monkeypatch) -> None:
     _install_fake_semantic_index(monkeypatch)
-    command = semantic_matcher.match_by_semantic(normalize_text("monitr one"))
+    command = semantic_matcher.match_by_semantic(normalize_text("mntor one"))
     assert command is None
 
 
