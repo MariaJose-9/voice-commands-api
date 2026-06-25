@@ -5,31 +5,7 @@ from __future__ import annotations
 import re
 from typing import Pattern
 
-
-VALID_SIZES = {55, 65, 75, 95, 120}
-_MONITOR_ALIASES = r"(?:monitor|monito|monitr|moniter|screen|pantalla)"
-
-_MONITOR_PATTERNS: list[tuple[Pattern[str], int]] = [
-    (re.compile(rf"\b{_MONITOR_ALIASES}\s+(?:one|1|uno)\b"), 1),
-    (re.compile(r"\b(?:first|primer)\s+monitor\b"), 1),
-    (re.compile(rf"\b{_MONITOR_ALIASES}\s+(?:two|2|dos)\b"), 2),
-    (re.compile(r"\b(?:second|segundo)\s+monitor\b"), 2),
-]
-
-_LAYOUT_PATTERNS: list[tuple[Pattern[str], int]] = [
-    (re.compile(r"\blayout\s+(?:one|1|uno)\b"), 1),
-    (re.compile(r"\b(?:first|primer)\s+layout\b"), 1),
-    (re.compile(r"\blayout\s+(?:two|2|dos)\b"), 2),
-    (re.compile(r"\b(?:second|segundo)\s+layout\b"), 2),
-]
-
-_SIZE_PATTERNS: list[Pattern[str]] = [
-    re.compile(r"\b(55|65|75|95|120)\s*inch(?:es)?\b"),
-    re.compile(r"\b(55|65|75|95|120)\s*pulgadas\b"),
-    re.compile(r"\b(?:tamano|tamaño)\s+(55|65|75|95|120)\b"),
-    re.compile(r"\bset\s+(55|65|75|95|120)\s*inch(?:es)?\b"),
-    re.compile(r"\bponlo\s+en\s+(55|65|75|95|120)\s*pulgadas\b"),
-]
+from app.services.entity_catalog_service import get_active_entities
 
 _STOP_PATTERN = re.compile(r"\b(?:stop|detener|parar|cancelar)\b")
 _STREAM_PATTERN = re.compile(
@@ -40,28 +16,48 @@ _FOLLOW_PATTERN = re.compile(
 )
 
 
-def _extract_value(
-    text: str, patterns: list[tuple[Pattern[str], int]]
-) -> int | None:
-    """Return the first matching integer value for the given alias patterns."""
+def _extract_alias_value(text: str, aliases_by_value: dict[str, list[str]]) -> int | None:
+    """Return the first matching integer value for the given alias map."""
 
-    for pattern, value in patterns:
-        if pattern.search(text):
-            return value
+    candidates: list[tuple[str, str]] = []
+    for value, aliases in aliases_by_value.items():
+        for alias in aliases:
+            candidates.append((alias, value))
+
+    candidates.sort(key=lambda item: (-len(item[0]), item[0]))
+    for alias, value in candidates:
+        if re.search(rf"\b{re.escape(alias)}\b", text):
+            return int(value)
     return None
 
 
-def _extract_size(text: str) -> int | None:
+def _extract_size(text: str, aliases_by_value: dict[str, list[str]]) -> int | None:
     """Return the first supported size detected in text."""
 
-    for pattern in _SIZE_PATTERNS:
-        match = pattern.search(text)
-        if not match:
-            continue
+    alias_value = _extract_alias_value(text, aliases_by_value)
+    if alias_value is not None:
+        return alias_value
 
-        size = int(match.group(1))
-        if size in VALID_SIZES:
-            return size
+    valid_sizes = sorted(
+        [int(value) for value in aliases_by_value.keys() if str(value).isdigit()],
+        key=int,
+    )
+    if not valid_sizes:
+        return None
+
+    sizes_group = "|".join(re.escape(str(size)) for size in valid_sizes)
+    patterns: list[Pattern[str]] = [
+        re.compile(rf"\b({sizes_group})\s*inch(?:es)?\b"),
+        re.compile(rf"\b({sizes_group})\s*pulgadas\b"),
+        re.compile(rf"\btamano\s+({sizes_group})\b"),
+        re.compile(rf"\bset\s+({sizes_group})\s*inch(?:es)?\b"),
+        re.compile(rf"\bponlo\s+en\s+({sizes_group})\s*pulgadas\b"),
+    ]
+
+    for pattern in patterns:
+        match = pattern.search(text)
+        if match:
+            return int(match.group(1))
 
     return None
 
@@ -69,10 +65,12 @@ def _extract_size(text: str) -> int | None:
 def extract_entities(normalized_text: str) -> dict:
     """Extract monitor, layout, size, and control flags from normalized text."""
 
+    entities = get_active_entities()
+
     return {
-        "monitor": _extract_value(normalized_text, _MONITOR_PATTERNS),
-        "layout": _extract_value(normalized_text, _LAYOUT_PATTERNS),
-        "size_inches": _extract_size(normalized_text),
+        "monitor": _extract_alias_value(normalized_text, entities.get("monitor", {})),
+        "layout": _extract_alias_value(normalized_text, entities.get("layout", {})),
+        "size_inches": _extract_size(normalized_text, entities.get("size_inches", {})),
         "flags": {
             "has_stop": bool(_STOP_PATTERN.search(normalized_text)),
             "has_stream": bool(_STREAM_PATTERN.search(normalized_text)),

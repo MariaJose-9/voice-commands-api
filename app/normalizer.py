@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+import app.services.runtime_settings_service as runtime_settings_service
 from app.config import (
     ENABLE_OLLAMA_FALLBACK,
     ENABLE_SEMANTIC_MATCHER,
@@ -40,6 +41,31 @@ def normalize_command_text(
 ) -> NormalizeResponse:
     """Normalize free-form transcribed voice text into canonical commands."""
 
+    max_text_length = runtime_settings_service.get_int_setting(
+        "MAX_TEXT_LENGTH",
+        MAX_TEXT_LENGTH,
+    )
+    fuzzy_threshold = runtime_settings_service.get_float_setting(
+        "FUZZY_THRESHOLD",
+        FUZZY_THRESHOLD,
+    )
+    semantic_threshold = runtime_settings_service.get_float_setting(
+        "SEMANTIC_THRESHOLD",
+        SEMANTIC_THRESHOLD,
+    )
+    semantic_confirmation_threshold = runtime_settings_service.get_float_setting(
+        "SEMANTIC_CONFIRMATION_THRESHOLD",
+        SEMANTIC_CONFIRMATION_THRESHOLD,
+    )
+    enable_semantic_matcher = runtime_settings_service.get_bool_setting(
+        "ENABLE_SEMANTIC_MATCHER",
+        ENABLE_SEMANTIC_MATCHER,
+    )
+    enable_ollama_fallback = runtime_settings_service.get_bool_setting(
+        "ENABLE_OLLAMA_FALLBACK",
+        ENABLE_OLLAMA_FALLBACK,
+    )
+
     raw_text = text
     if not text or not text.strip():
         unknown = _unknown_command("")
@@ -53,8 +79,8 @@ def normalize_command_text(
             message="Text input cannot be empty.",
         )
 
-    if len(text) > MAX_TEXT_LENGTH:
-        unknown = _unknown_command(text[:MAX_TEXT_LENGTH])
+    if len(text) > max_text_length:
+        unknown = _unknown_command(text[:max_text_length])
         return NormalizeResponse(
             ok=False,
             raw_text=raw_text,
@@ -62,7 +88,7 @@ def normalize_command_text(
             language=language_hint,
             commands=[unknown],
             needs_confirmation=True,
-            message=f"Text input exceeds maximum length of {MAX_TEXT_LENGTH} characters.",
+            message=f"Text input exceeds maximum length of {max_text_length} characters.",
         )
 
     normalized_text = normalize_text(text)
@@ -76,23 +102,23 @@ def normalize_command_text(
             commands.extend(rule_matches)
             continue
 
-        fuzzy_match = match_by_fuzzy(fragment, threshold=FUZZY_THRESHOLD)
+        fuzzy_match = match_by_fuzzy(fragment, threshold=fuzzy_threshold)
         if fuzzy_match is not None:
             commands.append(fuzzy_match)
             continue
 
         semantic_match = None
-        if ENABLE_SEMANTIC_MATCHER:
+        if enable_semantic_matcher:
             semantic_match = match_by_semantic(
                 fragment,
-                threshold=SEMANTIC_THRESHOLD,
-                confirmation_threshold=SEMANTIC_CONFIRMATION_THRESHOLD,
+                threshold=semantic_threshold,
+                confirmation_threshold=semantic_confirmation_threshold,
             )
-            if semantic_match is not None and semantic_match.confidence >= SEMANTIC_THRESHOLD:
+            if semantic_match is not None and semantic_match.confidence >= semantic_threshold:
                 commands.append(semantic_match)
                 continue
 
-        if ENABLE_OLLAMA_FALLBACK:
+        if enable_ollama_fallback:
             llm_response = ollama_fallback_normalize(
                 text=fragment,
                 normalized_text=fragment,
@@ -112,7 +138,7 @@ def normalize_command_text(
 
     needs_confirmation = (
         not commands
-        or any(command.confidence < SEMANTIC_THRESHOLD for command in commands)
+        or any(command.confidence < semantic_threshold for command in commands)
         or any(command.command == CommandName.UNKNOWN for command in commands)
     )
 

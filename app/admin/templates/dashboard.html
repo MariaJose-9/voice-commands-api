@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Overview</p>
+      <h2>Dashboard</h2>
+    </div>
+    <div class="pill-row">
+      <span class="pill">ENV: {{ dashboard.env }}</span>
+      <span class="pill">Semantic: {{ "on" if dashboard.semantic_enabled else "off" }}</span>
+      <span class="pill">Pending publish: {{ "yes" if dashboard.catalog_dirty else "no" }}</span>
+      <span class="pill">Admin: {{ current_user.email }}</span>
+      {% if dashboard.catalog_dirty %}
+      <form method="post" action="/admin/catalog/publish">
+        <button class="button button-small" type="submit">Publish Catalog</button>
+      </form>
+      {% endif %}
+      <a class="button button-secondary button-small" href="/admin/catalog/versions">Versions</a>
+    </div>
+  </div>
+  <div class="stats-grid">
+    {% include "partials/stat_card.html" with context %}
+  </div>
+</section>
+{% endblock %}

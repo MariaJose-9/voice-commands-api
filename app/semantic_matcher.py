@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
 from threading import Lock
 from typing import Any, Optional
 import concurrent.futures
 
 import numpy as np
-import yaml
 
 from app.config import SEMANTIC_MODEL_NAME, SEMANTIC_TIMEOUT_SECONDS
 from app.entity_extractor import extract_entities
 from app.preprocessor import normalize_text
 from app.schemas import CommandName, MatchMethod, NormalizedCommand
+from app.services.catalog_service import get_active_catalog
 
 
-_CATALOG_PATH = Path(__file__).resolve().parent / "commands" / "catalog.yml"
 _ENTITY_ONLY_COMMANDS = {
     CommandName.SELECT_MONITOR,
     CommandName.SET_LAYOUT,
@@ -32,12 +29,20 @@ _MODEL_LOCK = Lock()
 _INDEX_LOCK = Lock()
 
 
-@lru_cache(maxsize=1)
-def _load_catalog() -> list[dict[str, Any]]:
-    """Load the command catalog from YAML once per process."""
+def _load_catalog(force_refresh: bool = False) -> list[dict[str, Any]]:
+    """Load the active command catalog from the catalog service."""
 
-    data = yaml.safe_load(_CATALOG_PATH.read_text(encoding="utf-8")) or {}
-    return data.get("commands", [])
+    return get_active_catalog(force_refresh=force_refresh)
+
+
+def clear_semantic_cache() -> None:
+    """Clear the in-memory semantic index without unloading the model."""
+
+    global _SEMANTIC_INDEX, _INDEX_BUILT
+
+    with _INDEX_LOCK:
+        _SEMANTIC_INDEX = []
+        _INDEX_BUILT = False
 
 
 def _run_with_timeout(func, *args):
@@ -113,7 +118,7 @@ def _has_required_entities(command: CommandName, entities: dict[str, Any]) -> bo
     if command == CommandName.SET_LAYOUT:
         return entities.get("layout") in {1, 2}
     if command == CommandName.SET_SIZE:
-        return entities.get("size_inches") in {55, 65, 75, 95, 120}
+        return isinstance(entities.get("size_inches"), int) and entities.get("size_inches") > 0
     return True
 
 
@@ -135,10 +140,14 @@ def build_semantic_index(force_rebuild: bool = False) -> None:
             _INDEX_BUILT = False
             return
 
+        if force_rebuild:
+            _SEMANTIC_INDEX = []
+            _INDEX_BUILT = False
+
         rows: list[dict[str, Any]] = []
         texts_to_encode: list[str] = []
 
-        for entry in _load_catalog():
+        for entry in _load_catalog(force_refresh=force_rebuild):
             command_name = CommandName(entry["command"])
             requires_entities = entry.get("requires_entities", [])
             for example in entry.get("examples", []):

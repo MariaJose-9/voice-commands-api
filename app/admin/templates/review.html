@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Review{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Review Queue</p>
+      <h2>Pending Normalizations</h2>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+      <span class="pill">Logs: {{ logs|length }}</span>
+    </div>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Created</th>
+        <th>Raw</th>
+        <th>Normalized</th>
+        <th>Confidence</th>
+        <th>Needs Confirmation</th>
+        <th>Detected Commands</th>
+        <th>Convert</th>
+        <th>Ignore</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.created_at }}</td>
+        <td>{{ log.raw_text }}</td>
+        <td>{{ log.normalized_text or "-" }}</td>
+        <td>{{ log.top_confidence if log.top_confidence is not none else "-" }}</td>
+        <td>{{ "yes" if log.needs_confirmation else "no" }}</td>
+        <td>
+          {% if log.result_json and log.result_json.get("commands") %}
+            {% for command in log.result_json.get("commands", []) %}
+              <div>{{ command.get("command") }}</div>
+            {% endfor %}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          <form method="post" action="/admin/review/{{ log.id }}/assign" class="form-stack compact-form">
+            <select name="command_id" required>
+              {% for command in commands %}
+              <option value="{{ command.id }}">{{ command.code }}</option>
+              {% endfor %}
+            </select>
+            <select name="match_type">
+              <option value="exact">exact</option>
+              <option value="fuzzy">fuzzy</option>
+              <option value="semantic" selected>semantic</option>
+            </select>
+            <input type="text" name="language" placeholder="lang">
+            <button class="button button-small" type="submit">Convert</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="/admin/review/{{ log.id }}/ignore">
+            <button class="button button-secondary button-small" type="submit">Ignore</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, Optional
 
-import yaml
 from rapidfuzz import fuzz
 
 from app.entity_extractor import extract_entities
 from app.preprocessor import normalize_text
 from app.schemas import CommandName, MatchMethod, NormalizedCommand
+from app.services.catalog_service import clear_catalog_cache, get_active_catalog
 
 
-_CATALOG_PATH = Path(__file__).resolve().parent / "commands" / "catalog.yml"
 _ENTITY_ONLY_COMMANDS = {
     CommandName.SELECT_MONITOR,
     CommandName.SET_LAYOUT,
@@ -23,19 +21,11 @@ _ENTITY_ONLY_COMMANDS = {
 
 
 @lru_cache(maxsize=1)
-def _load_catalog() -> list[dict[str, Any]]:
-    """Load the command catalog from YAML once per process."""
-
-    data = yaml.safe_load(_CATALOG_PATH.read_text(encoding="utf-8")) or {}
-    return data.get("commands", [])
-
-
-@lru_cache(maxsize=1)
 def _flatten_examples() -> list[dict[str, Any]]:
     """Expand catalog entries to normalized example rows for scoring."""
 
     flattened: list[dict[str, Any]] = []
-    for entry in _load_catalog():
+    for entry in get_active_catalog():
         command_name = CommandName(entry["command"])
         requires_entities = entry.get("requires_entities", [])
         for example in entry.get("examples", []):
@@ -48,6 +38,13 @@ def _flatten_examples() -> list[dict[str, Any]]:
                 }
             )
     return flattened
+
+
+def clear_fuzzy_cache() -> None:
+    """Clear local fuzzy caches and the shared catalog cache."""
+
+    _flatten_examples.cache_clear()
+    clear_catalog_cache()
 
 
 def _score_text(query: str, candidate: str) -> float:
@@ -68,7 +65,7 @@ def _has_required_entities(command: CommandName, entities: dict[str, Any]) -> bo
     if command == CommandName.SET_LAYOUT:
         return entities.get("layout") in {1, 2}
     if command == CommandName.SET_SIZE:
-        return entities.get("size_inches") in {55, 65, 75, 95, 120}
+        return isinstance(entities.get("size_inches"), int) and entities.get("size_inches") > 0
     return True
 
 

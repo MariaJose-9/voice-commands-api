@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Entity Detail{% endblock %}
+
+{% block content %}
+<section class="panel">
+  {% if entity_type %}
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Entity</p>
+      <h2>{{ entity_type.code }}</h2>
+      <p class="muted">{{ entity_type.display_name }}</p>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+      <a class="button button-secondary button-small" href="/admin/entities">Back</a>
+    </div>
+  </div>
+
+  <section class="subpanel">
+    <h3>Add Value</h3>
+    <form method="post" action="/admin/entities/{{ entity_type.id }}/values" class="form-stack">
+      <label><span>Value</span><input type="text" name="value" required></label>
+      <label><span>Label</span><input type="text" name="label"></label>
+      <label class="checkbox"><input type="checkbox" name="enabled" checked> <span>Enabled</span></label>
+      <button class="button" type="submit">Add Value</button>
+    </form>
+  </section>
+
+  <section class="subpanel">
+    <h3>Values and Aliases</h3>
+    {% for value in values %}
+    <article class="entity-block">
+      <form method="post" action="/admin/entity-values/{{ value.id }}/update" class="inline-form entity-inline">
+        <input type="text" name="value" value="{{ value.value }}" required>
+        <input type="text" name="label" value="{{ value.label or '' }}" placeholder="label">
+        <label class="checkbox"><input type="checkbox" name="enabled" {% if value.enabled %}checked{% endif %}> <span>{{ "enabled" if value.enabled else "disabled" }}</span></label>
+        <button class="button button-small" type="submit">Update Value</button>
+      </form>
+      <form method="post" action="/admin/entity-values/{{ value.id }}/delete" class="inline-delete">
+        <button class="button button-danger button-small" type="submit">Soft Delete Value</button>
+      </form>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Phrase</th>
+            <th>Normalized</th>
+            <th>Language</th>
+            <th>Enabled</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for alias in aliases_by_value.get(value.id, []) %}
+          <tr>
+            <td colspan="5">
+              <form method="post" action="/admin/entity-aliases/{{ alias.id }}/update" class="inline-form entity-inline">
+                <input type="text" name="phrase" value="{{ alias.phrase }}" required>
+                <input type="text" name="language" value="{{ alias.language or '' }}" placeholder="lang">
+                <label class="checkbox"><input type="checkbox" name="enabled" {% if alias.enabled %}checked{% endif %}> <span>{{ "enabled" if alias.enabled else "disabled" }}</span></label>
+                <span class="muted">{{ alias.normalized_phrase }}</span>
+                <button class="button button-small" type="submit">Update Alias</button>
+              </form>
+              <div class="action-row">
+                <form method="post" action="/admin/entity-aliases/{{ alias.id }}/toggle">
+                  <button class="button button-secondary button-small" type="submit">{{ "Disable" if alias.enabled else "Enable" }}</button>
+                </form>
+                <form method="post" action="/admin/entity-aliases/{{ alias.id }}/delete">
+                  <button class="button button-danger button-small" type="submit">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <form method="post" action="/admin/entity-values/{{ value.id }}/aliases" class="form-stack compact-form">
+        <label><span>Alias Phrase</span><input type="text" name="phrase" required></label>
+        <label><span>Language</span><input type="text" name="language"></label>
+        <label class="checkbox"><input type="checkbox" name="enabled" checked> <span>Enabled</span></label>
+        <button class="button button-small" type="submit">Add Alias</button>
+      </form>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <h2>Entity type not found</h2>
+  <p class="muted">{{ error or "No entity type was found." }}</p>
+  {% endif %}
+</section>
+{% endblock %}

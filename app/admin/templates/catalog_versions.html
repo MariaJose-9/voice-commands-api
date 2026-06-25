@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Catalog Versions{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Catalog</p>
+      <h2>Published Versions</h2>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+      <span class="pill">Active: {{ active_version.version_number if active_version else "none" }}</span>
+      {% if catalog_dirty %}
+      <form method="post" action="/admin/catalog/publish">
+        <button class="button button-small" type="submit">Publish Catalog</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if import_error %}
+  <div class="alert">{{ import_error }}</div>
+  {% endif %}
+  {% if import_summary %}
+  <div class="pill-row">
+    <span class="pill">Created commands: {{ import_summary.created_commands }}</span>
+    <span class="pill">Added examples: {{ import_summary.added_examples }}</span>
+  </div>
+  {% endif %}
+
+  <section class="subpanel">
+    <h3>Import / Export YAML</h3>
+    <div class="action-row">
+      <a class="button button-secondary button-small" href="/admin/catalog/export-yaml">Export YAML</a>
+    </div>
+    <form method="post" action="/admin/catalog/import-yaml" enctype="multipart/form-data" class="form-stack compact-form">
+      <label>
+        <span>Catalog YAML</span>
+        <input type="file" name="catalog_file" accept=".yml,.yaml,text/yaml,application/x-yaml" required>
+      </label>
+      <button class="button button-small" type="submit">Import YAML</button>
+    </form>
+  </section>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Version</th>
+        <th>Status</th>
+        <th>Published At</th>
+        <th>Created By</th>
+        <th>Commands</th>
+        <th>Examples</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for version in versions %}
+      <tr>
+        <td>{{ version.version.version_number }}</td>
+        <td>{{ version.version.status.value }}</td>
+        <td>{{ version.version.published_at or "-" }}</td>
+        <td>{{ version.version.created_by or "-" }}</td>
+        <td>{{ version.command_count }}</td>
+        <td>{{ version.example_count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

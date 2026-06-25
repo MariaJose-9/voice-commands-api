@@ -1,0 +1,41 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: voice_command_api
+      MYSQL_USER: voice_user
+      MYSQL_PASSWORD: voice_password
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  api:
+    build:
+      context: .
+      args:
+        REQUIREMENTS_FILE: requirements-docker.txt
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql+pymysql://voice_user:voice_password@mysql:3306/voice_command_api?charset=utf8mb4
+      ENV: development
+      ALLOWED_ORIGINS: "*"
+      ENABLE_SEMANTIC_MATCHER: "false"
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin123
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "alembic upgrade head &&
+      python -m app.db.seed &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  mysql_data:

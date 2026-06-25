@@ -29,6 +29,7 @@ STOP_STREAM
 * Python 3.11
 * pip
 * Opcional: Docker
+* Opcional: Docker Compose
 * Opcional: Ollama para fallback local con LLM
 
 ---
@@ -67,6 +68,64 @@ http://localhost:8000
 
 ---
 
+## Docker Compose
+
+Para levantar API + MySQL juntos:
+
+```bash
+docker compose up --build
+```
+
+Esto hace:
+
+* levanta `mysql:8.0`
+* ejecuta `alembic upgrade head`
+* corre el seed inicial con `python -m app.db.seed`
+* inicia la API en `http://localhost:8000`
+* no expone MySQL al host por defecto, para no chocar con un MySQL local en `3306`
+* usa una imagen de desarrollo más liviana sin `sentence-transformers`, porque `ENABLE_SEMANTIC_MATCHER=false`
+
+Probar:
+
+```bash
+curl http://localhost:8000/health
+curl http://localhost:8000/health/db
+```
+
+Panel admin:
+
+```text
+http://localhost:8000/admin
+```
+
+Credenciales por defecto:
+
+```text
+admin@example.com
+admin123
+```
+
+Si necesitas exponer MySQL al host, puedes agregar temporalmente en `docker-compose.yml`:
+
+```yaml
+ports:
+  - "3307:3306"
+```
+
+Notas:
+
+* En `docker-compose.yml` el matcher semántico queda desactivado con `ENABLE_SEMANTIC_MATCHER=false` para un arranque inicial más rápido.
+* El `Dockerfile` usa por defecto `requirements-docker.txt` para evitar descargar dependencias pesadas como `torch` cuando el matcher semántico está apagado.
+* Si necesitas una imagen con el stack completo, puedes construirla con:
+
+```bash
+docker build --build-arg REQUIREMENTS_FILE=requirements.txt -t voice-command-api-full .
+```
+
+* La ejecución local sin Docker sigue funcionando igual con `uvicorn`.
+
+---
+
 ## Probar salud del servicio
 
 ```bash
@@ -90,6 +149,10 @@ Puedes crear un archivo `.env` o definir las variables directamente en la termin
 ```bash
 ENV=development
 ALLOWED_ORIGINS=*
+DATABASE_URL=mysql+pymysql://voice_user:voice_password@localhost:3306/voice_command_api?charset=utf8mb4
+ADMIN_SESSION_SECRET=change-me-in-production
+ADMIN_COOKIE_NAME=voice_admin_session
+ADMIN_SESSION_MAX_AGE_SECONDS=86400
 ENABLE_SEMANTIC_MATCHER=true
 ENABLE_OLLAMA_FALLBACK=false
 OLLAMA_BASE_URL=http://localhost:11434
@@ -101,11 +164,24 @@ SEMANTIC_CONFIRMATION_THRESHOLD=0.62
 MAX_TEXT_LENGTH=500
 ```
 
+Para Docker Compose, la API usa internamente:
+
+```bash
+DATABASE_URL=mysql+pymysql://voice_user:voice_password@mysql:3306/voice_command_api?charset=utf8mb4
+ENV=development
+ALLOWED_ORIGINS=*
+ENABLE_SEMANTIC_MATCHER=false
+```
+
 Para producción:
 
 ```bash
 ENV=production
 ALLOWED_ORIGINS=https://example.com,https://app.example.com
+DATABASE_URL=mysql+pymysql://voice_user:voice_password@localhost:3306/voice_command_api?charset=utf8mb4
+ADMIN_SESSION_SECRET=change-me-in-production
+ADMIN_COOKIE_NAME=voice_admin_session
+ADMIN_SESSION_MAX_AGE_SECONDS=86400
 ENABLE_SEMANTIC_MATCHER=true
 ENABLE_OLLAMA_FALLBACK=false
 MAX_TEXT_LENGTH=500
@@ -117,11 +193,45 @@ La primera llamada que use el matcher semántico puede demorar porque `sentence-
 
 ---
 
+## Admin en producción
+
+Antes de exponer el panel admin:
+
+* Cambia `ADMIN_SESSION_SECRET`.
+* Cambia el password por defecto del admin inicial.
+* Usa `ENV=production`.
+* Sirve la app detrás de HTTPS en un reverse proxy.
+* Configura `ALLOWED_ORIGINS` con orígenes explícitos.
+* Mantén `POST /admin/dev/seed` deshabilitado en producción.
+
+Protecciones actuales del panel:
+
+* cookie de sesión `HttpOnly`
+* `Secure=true` cuando `ENV=production`
+* `SameSite=lax`
+* expiración controlada por `ADMIN_SESSION_MAX_AGE_SECONDS`
+* rate limit básico de login en memoria
+* CSRF básico en formularios autenticados
+* roles `admin`, `editor`, `viewer`
+
+Permisos:
+
+* `viewer`: dashboard, commands, tester
+* `editor`: edición de examples, review y entidades
+* `admin`: settings, publish, import/export YAML y administración completa
+
+Nota:
+
+La protección CSRF actual cubre formularios autenticados del panel. Como siguiente endurecimiento, conviene agregar una estrategia dedicada también para el formulario de login si el panel va a exponerse públicamente.
+
+---
+
 ## Endpoints disponibles
 
 ```text
 GET  /
 GET  /health
+GET  /health/db
 GET  /v1/commands/catalog
 GET  /v1/commands/examples
 POST /v1/commands/normalize
@@ -133,6 +243,82 @@ Notas:
 
 * `POST /v1/commands/debug` solo está disponible fuera de producción.
 * `POST /v1/commands/warmup` sirve para cargar manualmente el modelo semántico antes de recibir comandos reales.
+* `GET /health/db` intenta ejecutar `SELECT 1` contra MySQL.
+
+---
+
+## MySQL
+
+SQL para crear base y usuario:
+
+```sql
+CREATE DATABASE voice_command_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'voice_user'@'localhost' IDENTIFIED BY 'voice_password';
+GRANT ALL PRIVILEGES ON voice_command_api.* TO 'voice_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+El endpoint:
+
+```http
+GET /health/db
+```
+
+Devuelve:
+
+```json
+{
+  "status": "ok",
+  "database": "ok"
+}
+```
+
+Si la base no está disponible, responde `503` con:
+
+```json
+{
+  "status": "error",
+  "database": "unavailable"
+}
+```
+
+Con Docker Compose no necesitas crear la base manualmente; MySQL la crea con las variables del servicio `mysql`.
+
+---
+
+## Alembic
+
+Crear una migración nueva:
+
+```bash
+alembic revision --autogenerate -m "message"
+```
+
+Aplicar migraciones:
+
+```bash
+alembic upgrade head
+```
+
+Revertir una migración:
+
+```bash
+alembic downgrade -1
+```
+
+En producción, usa Alembic como mecanismo de cambios de esquema. No uses `create_all()` para reemplazar migraciones.
+
+---
+
+## Seed inicial
+
+Para cargar comandos, examples, entidades, settings y un usuario admin inicial:
+
+```bash
+python -m app.db.seed
+```
+
+Esto importa desde `app/commands/catalog.yml` hacia MySQL.
 
 ---
 

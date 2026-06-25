@@ -1,3 +1,17 @@
+import pytest
+
+try:
+    from sqlalchemy.pool import StaticPool
+    from sqlmodel import Session, SQLModel, create_engine
+except ImportError:  # pragma: no cover
+    StaticPool = None
+    Session = None
+    SQLModel = None
+    create_engine = None
+
+import app.entity_extractor as entity_extractor
+import app.services.entity_catalog_service as entity_catalog_service
+from app.db.models import EntityType, EntityValue, EntityValueAlias
 from app.entity_extractor import extract_entities
 from app.preprocessor import normalize_text
 
@@ -82,3 +96,57 @@ def test_extract_entities_default_shape() -> None:
             "has_follow": False,
         },
     }
+
+
+def test_extract_entities_uses_db_alias_after_cache_clear(monkeypatch) -> None:
+    if create_engine is None or SQLModel is None or Session is None or StaticPool is None:
+        pytest.skip("sqlalchemy/sqlmodel not installed")
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SQLModel.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        entity_type = EntityType(code="monitor", display_name="Monitor", enabled=True)
+        session.add(entity_type)
+        session.commit()
+        session.refresh(entity_type)
+
+        entity_value = EntityValue(
+            entity_type_id=entity_type.id,
+            value="1",
+            label="Monitor 1",
+            enabled=True,
+        )
+        session.add(entity_value)
+        session.commit()
+        session.refresh(entity_value)
+
+        session.add(
+            EntityValueAlias(
+                entity_value_id=entity_value.id,
+                phrase="display alpha",
+                normalized_phrase="display alpha",
+                enabled=True,
+            )
+        )
+        session.commit()
+
+    monkeypatch.setattr(entity_catalog_service, "SessionFactory", Session)
+    monkeypatch.setattr(entity_catalog_service, "engine", engine)
+    entity_catalog_service.clear_entity_catalog_cache()
+
+    entities = entity_extractor.extract_entities(normalize_text("use display alpha"))
+    assert entities["monitor"] == 1
+
+
+def test_extract_entities_fallback_when_db_unavailable(monkeypatch) -> None:
+    monkeypatch.setattr(entity_catalog_service, "SessionFactory", None)
+    monkeypatch.setattr(entity_catalog_service, "engine", None)
+    entity_catalog_service.clear_entity_catalog_cache()
+
+    entities = entity_extractor.extract_entities(normalize_text("mueve el monito uno"))
+    assert entities["monitor"] == 1

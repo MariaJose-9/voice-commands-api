@@ -176,7 +176,7 @@ def match_by_rules(normalized_text: str, entities: dict) -> list[NormalizedComma
         )
 
     size_inches = entities.get("size_inches")
-    if size_inches in {55, 65, 75, 95, 120}:
+    if isinstance(size_inches, int) and size_inches > 0:
         _append_command(
             commands,
             seen,

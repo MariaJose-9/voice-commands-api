@@ -5,36 +5,29 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
+from app.admin.router import router as admin_router
 from app.config import (
     ALLOWED_ORIGINS,
     ENABLE_SEMANTIC_MATCHER,
     ENV,
-    FUZZY_THRESHOLD,
     MAX_TEXT_LENGTH,
-    SEMANTIC_CONFIRMATION_THRESHOLD,
-    SEMANTIC_THRESHOLD,
     StructuredLogFormatter,
 )
-from app.entity_extractor import extract_entities
-from app.fuzzy_matcher import get_fuzzy_candidates, match_by_fuzzy
-from app.multi_command import split_into_fragments
 from app.normalizer import normalize_command_text
-from app.preprocessor import normalize_text
-from app.rule_matcher import match_by_rules
 from app.schemas import NormalizeRequest, NormalizeResponse
-from app.semantic_matcher import (
-    get_semantic_candidates,
-    match_by_semantic,
-    warmup_semantic_matcher,
-)
+from app.semantic_matcher import warmup_semantic_matcher
+from app.services.cache_service import rebuild_runtime_indexes
+from app.services.catalog_service import get_active_catalog, get_catalog_metadata
+from app.services.debug_service import build_debug_response
+from app.services.normalization_log_service import save_normalization_log
 
 
 logger = logging.getLogger(__name__)
-CATALOG_PATH = Path(__file__).resolve().parent / "commands" / "catalog.yml"
 
 
 def _configure_logging() -> None:
@@ -62,12 +55,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@lru_cache(maxsize=1)
-def _load_catalog() -> list[dict[str, Any]]:
-    data = yaml.safe_load(CATALOG_PATH.read_text(encoding="utf-8")) or {}
-    return data.get("commands", [])
-
+app.mount(
+    "/admin/static",
+    StaticFiles(directory=str(Path(__file__).resolve().parent / "admin" / "static")),
+    name="admin-static",
+)
+app.include_router(admin_router)
 
 @lru_cache(maxsize=1)
 def _get_examples() -> list[dict[str, Any]]:
@@ -138,89 +131,44 @@ def read_health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def check_database_health() -> bool:
+    """Lazily check database availability."""
+
+    from app.db.session import check_database_connection
+
+    return check_database_connection()
+
+
+@app.get("/health/db")
+def read_health_db():
+    try:
+        check_database_health()
+        return {"status": "ok", "database": "ok"}
+    except Exception:
+        logger.exception(
+            "Database health check failed",
+            extra={"event": "health_db_error"},
+        )
+        return JSONResponse(
+            status_code=503,
+            content={"status": "error", "database": "unavailable"},
+        )
+
+
 @app.get("/v1/commands/catalog")
-def read_catalog() -> dict[str, list[dict[str, Any]]]:
-    return {"commands": _load_catalog()}
+def read_catalog() -> dict[str, Any]:
+    commands = get_active_catalog()
+    metadata = get_catalog_metadata()
+    return {
+        "source": metadata.get("source", "yaml_fallback"),
+        "metadata": metadata,
+        "commands": commands,
+    }
 
 
 @app.get("/v1/commands/examples")
 def read_examples() -> dict[str, list[dict[str, Any]]]:
     return {"examples": _get_examples()}
-
-
-def _build_debug_response(payload: NormalizeRequest) -> dict[str, Any]:
-    """Assemble debug data for the normalization pipeline."""
-
-    normalized_text = normalize_text(payload.text) if payload.text else ""
-    fragments = split_into_fragments(normalized_text) if normalized_text else []
-    entities_by_fragment = []
-    rule_matches = []
-    fuzzy_candidates = []
-    semantic_candidates = []
-
-    for fragment in fragments:
-        entities = extract_entities(fragment)
-        rule_match_list = match_by_rules(fragment, entities)
-        fuzzy_match = match_by_fuzzy(fragment, threshold=FUZZY_THRESHOLD)
-        semantic_match = (
-            match_by_semantic(
-                fragment,
-                threshold=SEMANTIC_THRESHOLD,
-                confirmation_threshold=SEMANTIC_CONFIRMATION_THRESHOLD,
-            )
-            if ENABLE_SEMANTIC_MATCHER
-            else None
-        )
-
-        entities_by_fragment.append({"fragment": fragment, "entities": entities})
-        rule_matches.append(
-            {
-                "fragment": fragment,
-                "matches": [
-                    match.model_dump(mode="json") for match in rule_match_list
-                ],
-            }
-        )
-        fuzzy_candidates.append(
-            {
-                "fragment": fragment,
-                "candidates": get_fuzzy_candidates(fragment),
-                "match": (
-                    fuzzy_match.model_dump(mode="json")
-                    if fuzzy_match is not None
-                    else None
-                ),
-            }
-        )
-        semantic_candidates.append(
-            {
-                "fragment": fragment,
-                "candidates": (
-                    get_semantic_candidates(fragment) if ENABLE_SEMANTIC_MATCHER else []
-                ),
-                "match": (
-                    semantic_match.model_dump(mode="json")
-                    if semantic_match is not None
-                    else None
-                ),
-            }
-        )
-
-    final_response = normalize_command_text(
-        text=payload.text,
-        language_hint=payload.language_hint,
-        context=payload.context,
-    )
-    return {
-        "raw_text": payload.text,
-        "normalized_text": normalized_text,
-        "fragments": fragments,
-        "entities_by_fragment": entities_by_fragment,
-        "rule_matches": rule_matches,
-        "fuzzy_candidates": fuzzy_candidates,
-        "semantic_candidates": semantic_candidates,
-        "final_response": final_response.model_dump(mode="json"),
-    }
 
 
 @app.post("/v1/commands/normalize", response_model=NormalizeResponse)
@@ -230,11 +178,25 @@ def normalize_commands(payload: NormalizeRequest) -> NormalizeResponse:
             "normalize request received",
             extra={"event": "normalize_request"},
         )
-        return normalize_command_text(
+        response = normalize_command_text(
             text=payload.text,
             language_hint=payload.language_hint,
             context=payload.context,
         )
+        try:
+            save_normalization_log(
+                raw_text=payload.text,
+                normalized_text=response.normalized_text,
+                language=response.language,
+                response=response,
+            )
+        except Exception:
+            logger.warning(
+                "Normalization log persistence raised unexpectedly",
+                extra={"event": "normalization_log_warning"},
+                exc_info=True,
+            )
+        return response
     except Exception as exc:
         logger.exception(
             "Failed to normalize command text",
@@ -252,7 +214,7 @@ def debug_commands(payload: NormalizeRequest) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Not Found")
 
     try:
-        return _build_debug_response(payload)
+        return build_debug_response(payload)
     except Exception as exc:
         logger.exception(
             "Failed to build debug command response",
@@ -282,4 +244,47 @@ def warmup_commands() -> dict[str, Any]:
         raise HTTPException(
             status_code=500,
             detail="Internal error while warming up semantic matcher.",
+        ) from exc
+
+
+@app.post("/v1/commands/reload")
+def reload_runtime_commands() -> dict[str, Any]:
+    if ENV == "production":
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    try:
+        return rebuild_runtime_indexes()
+    except Exception as exc:
+        logger.exception(
+            "Failed to rebuild runtime indexes",
+            extra={"event": "reload_error"},
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error while reloading runtime indexes.",
+        ) from exc
+
+
+@app.post("/admin/dev/seed")
+def admin_dev_seed() -> dict[str, Any]:
+    if ENV == "production":
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    try:
+        from app.db.seed import run_seed
+        from app.db.session import Session as DBSession, engine
+
+        if DBSession is None or engine is None:
+            raise RuntimeError("Database dependencies are not installed.")
+
+        with DBSession(engine) as session:
+            return run_seed(session)
+    except Exception as exc:
+        logger.exception(
+            "Failed to run development seed",
+            extra={"event": "seed_error"},
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error while running development seed.",
         ) from exc

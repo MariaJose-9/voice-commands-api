@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Tester{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Pipeline Tester</p>
+      <h2>Command Playground</h2>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+      <span class="pill">Semantic: {{ "on" if semantic_enabled else "off" }}</span>
+    </div>
+  </div>
+
+  <form method="post" action="/admin/tester/run" class="form-stack">
+    <label>
+      <span>Text</span>
+      <input type="text" name="text" value="{{ text }}" required>
+    </label>
+    <label>
+      <span>Language Hint</span>
+      <input type="text" name="language_hint" value="{{ language_hint }}" placeholder="en or es">
+    </label>
+    <button class="button" type="submit">Test</button>
+  </form>
+</section>
+
+{% if debug_data %}
+<section class="panel debug-panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Debug Result</p>
+      <h2>{{ debug_data.raw_text }}</h2>
+    </div>
+  </div>
+
+  <div class="debug-grid">
+    <div class="stat-card">
+      <span class="stat-label">Normalized</span>
+      <div>{{ debug_data.normalized_text or "-" }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Fragments</span>
+      <div>{{ debug_data.fragments|join(", ") if debug_data.fragments else "-" }}</div>
+    </div>
+  </div>
+
+  <section class="subpanel">
+    <h3>Entities By Fragment</h3>
+    <div class="json-block">{{ debug_data.entities_by_fragment|tojson(indent=2) }}</div>
+  </section>
+
+  <section class="subpanel">
+    <h3>Rule Matches</h3>
+    <div class="json-block">{{ debug_data.rule_matches|tojson(indent=2) }}</div>
+  </section>
+
+  <section class="subpanel">
+    <h3>Fuzzy Candidates</h3>
+    <div class="json-block">{{ debug_data.fuzzy_candidates|tojson(indent=2) }}</div>
+  </section>
+
+  <section class="subpanel">
+    <h3>Semantic Candidates</h3>
+    <div class="json-block">{{ debug_data.semantic_candidates|tojson(indent=2) }}</div>
+  </section>
+
+  <section class="subpanel">
+    <h3>Final Response</h3>
+    <div class="json-block">{{ debug_data.final_response|tojson(indent=2) }}</div>
+  </section>
+
+  <section class="subpanel">
+    <h3>Guardar Como Example</h3>
+    <div class="save-example-grid">
+      {% for result in debug_data.final_response.commands %}
+      <form method="post" action="/admin/tester/save-example" class="form-stack compact-form stat-card">
+        <input type="hidden" name="phrase" value="{{ debug_data.raw_text }}">
+        <input type="hidden" name="language" value="{{ language_hint }}">
+        <div class="pill-row">
+          <span class="pill">{{ result.command }}</span>
+          <span class="pill">{{ result.method }}</span>
+          <span class="pill">{{ result.confidence }}</span>
+        </div>
+        <label>
+          <span>Command</span>
+          <select name="command_id" required>
+            {% for command in commands %}
+            <option value="{{ command.id }}" {% if command.code.value == result.command %}selected{% endif %}>{{ command.code }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Match Type</span>
+          <select name="match_type">
+            {% for option in ["exact", "fuzzy", "semantic"] %}
+            <option value="{{ option }}" {% if result.method == option %}selected{% elif result.method not in ["exact", "fuzzy", "semantic"] and option == "semantic" %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button class="button button-small" type="submit">Guardar como example</button>
+      </form>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endif %}
+{% endblock %}

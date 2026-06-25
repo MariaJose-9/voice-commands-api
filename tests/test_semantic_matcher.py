@@ -78,8 +78,13 @@ def _install_fake_semantic_index(monkeypatch):
     semantic_matcher._SEMANTIC_INDEX = []
     semantic_matcher._INDEX_BUILT = False
 
-    monkeypatch.setattr(semantic_matcher, "_load_catalog", lambda: catalog)
-    monkeypatch.setattr(semantic_matcher, "_get_model", lambda: FakeModel(vectors))
+    model = FakeModel(vectors)
+    monkeypatch.setattr(
+        semantic_matcher,
+        "_load_catalog",
+        lambda force_refresh=False: catalog,
+    )
+    monkeypatch.setattr(semantic_matcher, "_get_model", lambda: model)
 
 
 def test_get_model_loads_once(monkeypatch) -> None:
@@ -116,6 +121,49 @@ def test_warmup_semantic_matcher_builds_index(monkeypatch) -> None:
     assert result["model_loaded"] is True
     assert result["index_built"] is True
     assert result["examples_indexed"] > 0
+
+
+def test_clear_semantic_cache_resets_index_but_keeps_model(monkeypatch) -> None:
+    _install_fake_semantic_index(monkeypatch)
+    semantic_matcher.build_semantic_index(force_rebuild=True)
+    assert semantic_matcher._INDEX_BUILT is True
+    assert semantic_matcher._SEMANTIC_INDEX
+
+    fake_model = semantic_matcher._get_model()
+    semantic_matcher.clear_semantic_cache()
+
+    assert semantic_matcher._INDEX_BUILT is False
+    assert semantic_matcher._SEMANTIC_INDEX == []
+    assert semantic_matcher._get_model() is fake_model
+
+
+def test_warmup_semantic_matcher_force_rebuild_reloads_catalog(monkeypatch) -> None:
+    catalog_versions = [
+        [{"command": "START_STREAM", "examples": ["start stream"]}],
+        [{"command": "START_STREAM", "examples": ["broadcast now"]}],
+    ]
+    vectors = {
+        "start stream": [1.0, 0.0, 0.0],
+        "broadcast now": [0.0, 1.0, 0.0],
+    }
+    state = {"index": 0, "force_refresh_flags": []}
+
+    semantic_matcher.clear_semantic_cache()
+    semantic_matcher._MODEL = None
+    semantic_matcher._MODEL_LOAD_FAILED = False
+
+    def fake_load_catalog(force_refresh=False):
+        state["force_refresh_flags"].append(force_refresh)
+        if force_refresh and state["index"] < len(catalog_versions) - 1:
+            state["index"] += 1
+        return catalog_versions[state["index"]]
+
+    monkeypatch.setattr(semantic_matcher, "_load_catalog", fake_load_catalog)
+    monkeypatch.setattr(semantic_matcher, "_get_model", lambda: FakeModel(vectors))
+
+    semantic_matcher.build_semantic_index(force_rebuild=True)
+    assert [row["example"] for row in semantic_matcher._SEMANTIC_INDEX] == ["broadcast now"]
+    assert True in state["force_refresh_flags"]
 
 
 def test_match_by_semantic_increase_size(monkeypatch) -> None:
@@ -222,7 +270,7 @@ def test_match_by_semantic_handles_model_failure(monkeypatch) -> None:
     monkeypatch.setattr(
         semantic_matcher,
         "_load_catalog",
-        lambda: [{"command": "INCREASE_SIZE", "examples": ["make it bigger"]}],
+        lambda force_refresh=False: [{"command": "INCREASE_SIZE", "examples": ["make it bigger"]}],
     )
 
     command = semantic_matcher.match_by_semantic(normalize_text("make it bigger"))

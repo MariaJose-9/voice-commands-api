@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Entities{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Entities</p>
+      <h2>Entity Types</h2>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+    </div>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Display Name</th>
+        <th>Enabled</th>
+        <th>Values</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in entity_types %}
+      <tr>
+        <td>{{ row.entity_type.code }}</td>
+        <td>{{ row.entity_type.display_name }}</td>
+        <td>{{ "yes" if row.entity_type.enabled else "no" }}</td>
+        <td>{{ row.value_count }}</td>
+        <td><a class="button button-small" href="/admin/entities/{{ row.entity_type.id }}">Edit</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

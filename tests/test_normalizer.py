@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import app.normalizer as normalizer_module
+from app.fuzzy_matcher import clear_fuzzy_cache
 from app.normalizer import normalize_command_text
 from app.schemas import CommandName
 
@@ -237,8 +238,57 @@ def test_normalize_ignores_ollama_failure(monkeypatch) -> None:
 
 def test_normalize_rejects_text_above_max_length(monkeypatch) -> None:
     monkeypatch.setattr(normalizer_module, "MAX_TEXT_LENGTH", 10)
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_int_setting",
+        lambda key, default: 10 if key == "MAX_TEXT_LENGTH" else default,
+    )
     response = normalize_command_text("this input is definitely too long")
     assert response.ok is False
     assert response.needs_confirmation is True
     assert [command.command for command in response.commands] == [CommandName.UNKNOWN]
     assert "maximum length" in (response.message or "")
+
+
+def test_normalizer_uses_runtime_db_threshold(monkeypatch) -> None:
+    clear_fuzzy_cache()
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_float_setting",
+        lambda key, default: 95.0 if key == "FUZZY_THRESHOLD" else default,
+    )
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_int_setting",
+        lambda key, default: default,
+    )
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_bool_setting",
+        lambda key, default: False if key in {"ENABLE_SEMANTIC_MATCHER", "ENABLE_OLLAMA_FALLBACK"} else default,
+    )
+
+    response = normalize_command_text("stram")
+    assert [command.command for command in response.commands] == [CommandName.UNKNOWN]
+
+
+def test_normalizer_uses_config_when_runtime_settings_fail(monkeypatch) -> None:
+    clear_fuzzy_cache()
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_float_setting",
+        lambda key, default: default,
+    )
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_int_setting",
+        lambda key, default: default,
+    )
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_bool_setting",
+        lambda key, default: False if key in {"ENABLE_SEMANTIC_MATCHER", "ENABLE_OLLAMA_FALLBACK"} else default,
+    )
+
+    response = normalize_command_text("stram")
+    assert [command.command for command in response.commands] == [CommandName.START_STREAM]

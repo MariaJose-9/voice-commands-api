@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Commands{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Catalog</p>
+      <h2>Commands</h2>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+    </div>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Display Name</th>
+        <th>Category</th>
+        <th>Enabled</th>
+        <th>Priority</th>
+        <th>Examples</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in commands %}
+      <tr>
+        <td>{{ row.command.code }}</td>
+        <td>{{ row.command.display_name }}</td>
+        <td>{{ row.command.category or "-" }}</td>
+        <td>{{ "yes" if row.command.enabled else "no" }}</td>
+        <td>{{ row.command.priority }}</td>
+        <td>{{ row.example_count }}</td>
+        <td><a class="button button-small" href="/admin/commands/{{ row.command.id }}">Edit</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

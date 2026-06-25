@@ -7,3 +7,13 @@ sentence-transformers
 numpy
 pytest
 httpx
+sqlmodel
+sqlalchemy
+pymysql
+alembic
+python-dotenv
+jinja2
+python-multipart
+passlib[bcrypt]
+bcrypt==4.0.1
+itsdangerous

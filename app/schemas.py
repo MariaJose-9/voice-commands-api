@@ -11,7 +11,6 @@ from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-ALLOWED_SIZES = {55, 65, 75, 95, 120}
 ALLOWED_MONITORS = {1, 2}
 ALLOWED_LAYOUTS = {1, 2}
 
@@ -125,10 +124,8 @@ class NormalizedCommand(BaseModel):
         """Enforce entity constraints for command-specific payloads."""
 
         if self.command == CommandName.SET_SIZE:
-            if self.size_inches not in ALLOWED_SIZES:
-                raise ValueError(
-                    f"SET_SIZE requires size_inches in {sorted(ALLOWED_SIZES)}."
-                )
+            if self.size_inches is None or self.size_inches <= 0:
+                raise ValueError("SET_SIZE requires a positive size_inches value.")
 
         if self.command == CommandName.SELECT_MONITOR:
             if self.monitor not in ALLOWED_MONITORS:

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Runtime</p>
+      <h2>Settings</h2>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+    </div>
+  </div>
+  <form method="post" action="/admin/settings/update" class="form-stack">
+    <label><span>FUZZY_THRESHOLD</span><input type="number" step="0.01" name="FUZZY_THRESHOLD" value="{{ settings.FUZZY_THRESHOLD }}"></label>
+    <label><span>SEMANTIC_THRESHOLD</span><input type="number" step="0.01" name="SEMANTIC_THRESHOLD" value="{{ settings.SEMANTIC_THRESHOLD }}"></label>
+    <label><span>SEMANTIC_CONFIRMATION_THRESHOLD</span><input type="number" step="0.01" name="SEMANTIC_CONFIRMATION_THRESHOLD" value="{{ settings.SEMANTIC_CONFIRMATION_THRESHOLD }}"></label>
+    <label class="checkbox"><input type="checkbox" name="ENABLE_SEMANTIC_MATCHER" {% if settings.ENABLE_SEMANTIC_MATCHER in [True, 'true', 'True'] %}checked{% endif %}> <span>ENABLE_SEMANTIC_MATCHER</span></label>
+    <label class="checkbox"><input type="checkbox" name="ENABLE_OLLAMA_FALLBACK" {% if settings.ENABLE_OLLAMA_FALLBACK in [True, 'true', 'True'] %}checked{% endif %}> <span>ENABLE_OLLAMA_FALLBACK</span></label>
+    <label><span>SEMANTIC_MODEL_NAME</span><input type="text" name="SEMANTIC_MODEL_NAME" value="{{ settings.SEMANTIC_MODEL_NAME }}"></label>
+    <label><span>MAX_TEXT_LENGTH</span><input type="number" name="MAX_TEXT_LENGTH" value="{{ settings.MAX_TEXT_LENGTH }}"></label>
+    <button class="button" type="submit">Save Settings</button>
+  </form>
+</section>
+{% endblock %}
