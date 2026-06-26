@@ -19,6 +19,8 @@
         <a href="/admin">Dashboard</a>
         <a href="/admin/commands">Commands</a>
         <a href="/admin/tester">Tester</a>
+        <a href="/admin/audio-tester">Audio Tester</a>
+        <a href="/admin/audio-logs">Audio Logs</a>
         {% if current_user.role in [UserRole.EDITOR, UserRole.ADMIN, "editor", "admin"] %}
         <a href="/admin/entities">Entities</a>
         <a href="/admin/review">Review</a>

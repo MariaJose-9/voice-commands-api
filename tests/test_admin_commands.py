@@ -14,6 +14,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
 import app.main as main_module
+from app.audio.schemas import AudioNormalizeResponse, AudioTranscriptionResponse
 import app.services.entity_catalog_service as entity_catalog_service
 import app.services.publish_service as publish_service
 from app.db.models import (
@@ -418,6 +419,83 @@ def test_editor_cannot_update_settings(client_with_sqlite, monkeypatch) -> None:
         follow_redirects=False,
     )
     assert response.status_code == 403
+
+
+def test_admin_settings_page_shows_audio_fields(client_with_sqlite) -> None:
+    client, _engine = client_with_sqlite
+
+    response = client.get("/admin/settings")
+
+    assert response.status_code == 200
+    assert "ENABLE_AUDIO_TRANSCRIPTION" in response.text
+    assert "TRANSCRIPTION_MODEL_NAME" in response.text
+    assert "MAX_AUDIO_FILE_MB" in response.text
+    assert "ALLOWED_AUDIO_MIME_TYPES" in response.text
+
+
+def test_admin_audio_tester_invalid_file_shows_controlled_error(
+    client_with_sqlite,
+    monkeypatch,
+) -> None:
+    client, _engine = client_with_sqlite
+
+    def raise_error(upload_file, language_hint=None):
+        raise ValueError("Unsupported audio file extension: .wav")
+
+    monkeypatch.setattr(
+        admin_router_module,
+        "process_audio_transcription_upload",
+        raise_error,
+    )
+
+    response = client.post(
+        "/admin/audio-tester/transcribe",
+        files={"file": ("sample.wav", b"fake-audio", "audio/wav")},
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 400
+    assert "Unsupported audio file extension: .wav" in response.text
+
+
+def test_admin_audio_tester_normalize_uses_mocked_audio_flow(
+    client_with_sqlite,
+    monkeypatch,
+) -> None:
+    client, _engine = client_with_sqlite
+
+    monkeypatch.setattr(
+        admin_router_module,
+        "process_audio_normalization_upload",
+        lambda upload_file, language_hint=None, context_json=None: AudioNormalizeResponse(
+            ok=True,
+            transcription=AudioTranscriptionResponse(
+                ok=True,
+                text="monitor two and zoom in",
+                language="en",
+                duration_seconds=1.2,
+                engine="faster_whisper",
+                model="base",
+                segments=[],
+            ),
+            normalization=main_module.normalize_command_text(
+                "monitor two and zoom in",
+                language_hint="en",
+            ),
+            message=None,
+        ),
+    )
+
+    response = client.post(
+        "/admin/audio-tester/normalize",
+        files={"file": ("sample.mp3", b"fake-audio", "audio/mpeg")},
+        data={"language_hint": "en", "context_json": '{"selected_monitor": null}'},
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert "monitor two and zoom in" in response.text
+    assert "SELECT_MONITOR" in response.text
 
 
 def test_admin_can_publish_catalog(client_with_sqlite, monkeypatch) -> None:

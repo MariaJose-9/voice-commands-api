@@ -12,7 +12,7 @@
     <div class="pill-row">
       <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
       <span class="pill">Active: {{ active_version.version_number if active_version else "none" }}</span>
-      {% if catalog_dirty %}
+      {% if catalog_dirty or not active_version %}
       <form method="post" action="/admin/catalog/publish">
         <button class="button button-small" type="submit">Publish Catalog</button>
       </form>

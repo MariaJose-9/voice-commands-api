@@ -3,6 +3,7 @@ uvicorn
 pydantic
 PyYAML
 RapidFuzz
+faster-whisper
 numpy
 httpx
 sqlmodel

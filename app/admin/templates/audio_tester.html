@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Audio Tester{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Audio Playground</p>
+      <h2>Audio Tester</h2>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="json-block">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="form-stack">
+    <label>
+      <span>Audio File</span>
+      <input type="file" name="file" accept=".ogg,.mp3" required>
+    </label>
+    <label>
+      <span>Language Hint</span>
+      <input type="text" name="language_hint" value="{{ language_hint }}" placeholder="en or es">
+    </label>
+    <label>
+      <span>Context JSON</span>
+      <textarea name="context_json" rows="4" placeholder='{"selected_monitor": null}'>{{ context_json }}</textarea>
+    </label>
+    <div class="pill-row">
+      <button class="button" type="submit" formaction="/admin/audio-tester/transcribe">Transcribe only</button>
+      <button class="button" type="submit" formaction="/admin/audio-tester/normalize">Transcribe and normalize</button>
+    </div>
+  </form>
+</section>
+
+{% if transcription_result %}
+<section class="panel debug-panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Transcription</p>
+      <h2>{{ transcription_result.text or "-" }}</h2>
+    </div>
+  </div>
+  <section class="subpanel">
+    <h3>Result</h3>
+    <div class="json-block">{{ transcription_result|tojson(indent=2) }}</div>
+  </section>
+</section>
+{% endif %}
+
+{% if normalize_result %}
+<section class="panel debug-panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Normalization</p>
+      <h2>Detected Commands</h2>
+    </div>
+  </div>
+  <section class="subpanel">
+    <h3>Commands</h3>
+    <div class="json-block">{{ normalize_result.normalization.commands|tojson(indent=2) }}</div>
+  </section>
+  <section class="subpanel">
+    <h3>Normalization JSON</h3>
+    <div class="json-block">{{ normalize_result.normalization|tojson(indent=2) }}</div>
+  </section>
+</section>
+{% endif %}
+{% endblock %}

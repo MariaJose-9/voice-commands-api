@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import select
@@ -30,19 +30,36 @@ from app.admin.forms import (
     ExampleUpdateForm,
     LoginForm,
 )
+from app.audio.router import (
+    process_audio_normalization_upload,
+    process_audio_transcription_upload,
+)
 from app.config import (
     ADMIN_SESSION_MAX_AGE_SECONDS,
+    ALLOWED_AUDIO_EXTENSIONS,
+    ALLOWED_AUDIO_MIME_TYPES,
     ENABLE_SEMANTIC_MATCHER,
+    ENABLE_AUDIO_TRANSCRIPTION,
     ENV,
     ENABLE_OLLAMA_FALLBACK,
     FUZZY_THRESHOLD,
     MAX_TEXT_LENGTH,
+    MAX_AUDIO_DURATION_SECONDS,
+    MAX_AUDIO_FILE_MB,
     SEMANTIC_CONFIRMATION_THRESHOLD,
     SEMANTIC_MODEL_NAME,
     SEMANTIC_THRESHOLD,
+    TRANSCRIPTION_BEAM_SIZE,
+    TRANSCRIPTION_COMPUTE_TYPE,
+    TRANSCRIPTION_DEVICE,
+    TRANSCRIPTION_ENGINE,
+    TRANSCRIPTION_LANGUAGE_DEFAULT,
+    TRANSCRIPTION_MODEL_NAME,
+    TRANSCRIPTION_VAD_FILTER,
 )
 from app.db.models import (
     AppSetting,
+    AudioTranscriptionLog,
     AuditLog,
     CatalogStatus,
     CatalogVersion,
@@ -64,7 +81,7 @@ from app.schemas import CommandName, NormalizeRequest
 from app.services.debug_service import build_debug_response
 from app.services.publish_service import get_active_version, publish_catalog
 from app.services.review_service import assign_log_to_command, ignore_review_log
-from app.services.runtime_settings_service import get_runtime_setting
+from app.services.runtime_settings_service import get_audio_list_setting, get_runtime_setting
 from app.services.settings_service import is_catalog_dirty, set_catalog_dirty
 
 
@@ -85,6 +102,41 @@ EDITABLE_SETTINGS = {
     "ENABLE_OLLAMA_FALLBACK": ENABLE_OLLAMA_FALLBACK,
     "SEMANTIC_MODEL_NAME": SEMANTIC_MODEL_NAME,
     "MAX_TEXT_LENGTH": MAX_TEXT_LENGTH,
+    "ENABLE_AUDIO_TRANSCRIPTION": ENABLE_AUDIO_TRANSCRIPTION,
+    "TRANSCRIPTION_ENGINE": TRANSCRIPTION_ENGINE,
+    "TRANSCRIPTION_MODEL_NAME": TRANSCRIPTION_MODEL_NAME,
+    "TRANSCRIPTION_DEVICE": TRANSCRIPTION_DEVICE,
+    "TRANSCRIPTION_COMPUTE_TYPE": TRANSCRIPTION_COMPUTE_TYPE,
+    "TRANSCRIPTION_BEAM_SIZE": TRANSCRIPTION_BEAM_SIZE,
+    "TRANSCRIPTION_VAD_FILTER": TRANSCRIPTION_VAD_FILTER,
+    "TRANSCRIPTION_LANGUAGE_DEFAULT": TRANSCRIPTION_LANGUAGE_DEFAULT,
+    "MAX_AUDIO_FILE_MB": MAX_AUDIO_FILE_MB,
+    "MAX_AUDIO_DURATION_SECONDS": MAX_AUDIO_DURATION_SECONDS,
+    "ALLOWED_AUDIO_EXTENSIONS": ALLOWED_AUDIO_EXTENSIONS,
+    "ALLOWED_AUDIO_MIME_TYPES": ALLOWED_AUDIO_MIME_TYPES,
+}
+AUDIO_SETTINGS_KEYS = {
+    "ENABLE_AUDIO_TRANSCRIPTION",
+    "TRANSCRIPTION_ENGINE",
+    "TRANSCRIPTION_MODEL_NAME",
+    "TRANSCRIPTION_DEVICE",
+    "TRANSCRIPTION_COMPUTE_TYPE",
+    "TRANSCRIPTION_BEAM_SIZE",
+    "TRANSCRIPTION_VAD_FILTER",
+    "TRANSCRIPTION_LANGUAGE_DEFAULT",
+    "MAX_AUDIO_FILE_MB",
+    "MAX_AUDIO_DURATION_SECONDS",
+    "ALLOWED_AUDIO_EXTENSIONS",
+    "ALLOWED_AUDIO_MIME_TYPES",
+}
+AUDIO_MODEL_RELOAD_SETTINGS = {
+    "TRANSCRIPTION_MODEL_NAME",
+    "TRANSCRIPTION_DEVICE",
+    "TRANSCRIPTION_COMPUTE_TYPE",
+}
+AUDIO_LIST_SETTINGS = {
+    "ALLOWED_AUDIO_EXTENSIONS",
+    "ALLOWED_AUDIO_MIME_TYPES",
 }
 ROLE_ORDER = {
     UserRole.VIEWER: 0,
@@ -346,12 +398,18 @@ def _load_settings_context() -> dict[str, Any]:
     if SessionFactory is not None and engine is not None:
         with SessionFactory(engine) as session:
             for key, default in EDITABLE_SETTINGS.items():
-                settings[key] = get_runtime_setting(key, default)
+                if key in AUDIO_LIST_SETTINGS:
+                    settings[key] = ", ".join(get_audio_list_setting(key, default))
+                else:
+                    settings[key] = get_runtime_setting(key, default)
             dirty = is_catalog_dirty(session)
         return {"settings": settings, "catalog_dirty": dirty}
 
     return {
-        "settings": dict(EDITABLE_SETTINGS),
+        "settings": {
+            key: ", ".join(value) if key in AUDIO_LIST_SETTINGS else value
+            for key, value in EDITABLE_SETTINGS.items()
+        },
         "catalog_dirty": False,
     }
 
@@ -374,6 +432,18 @@ def _load_review_context() -> dict[str, Any]:
         dirty = is_catalog_dirty(session)
 
     return {"logs": logs, "commands": commands, "catalog_dirty": dirty}
+
+
+def _load_audio_logs_context() -> dict[str, Any]:
+    if SessionFactory is None or engine is None:
+        return {"logs": [], "catalog_dirty": False}
+
+    with SessionFactory(engine) as session:
+        logs = session.exec(
+            select(AudioTranscriptionLog).order_by(AudioTranscriptionLog.created_at.desc())
+        ).all()
+        dirty = is_catalog_dirty(session)
+    return {"logs": logs, "catalog_dirty": dirty}
 
 
 def _load_enabled_commands() -> list[CommandDefinition]:
@@ -401,6 +471,22 @@ def _load_tester_context() -> dict[str, Any]:
         "debug_data": None,
         "text": "",
         "language_hint": "",
+    }
+
+
+def _load_audio_tester_context() -> dict[str, Any]:
+    catalog_dirty = False
+    if SessionFactory is not None and engine is not None:
+        with SessionFactory(engine) as session:
+            catalog_dirty = is_catalog_dirty(session)
+
+    return {
+        "catalog_dirty": catalog_dirty,
+        "transcription_result": None,
+        "normalize_result": None,
+        "language_hint": "",
+        "context_json": "",
+        "error": None,
     }
 
 
@@ -921,17 +1007,28 @@ async def admin_settings_update(request: Request):
 
     with SessionFactory(engine) as session:
         dirty_changed = False
+        changed_keys: list[str] = []
+        changed_audio_keys: list[str] = []
+        audio_model_reload_required = False
         for key, default in EDITABLE_SETTINGS.items():
             raw_value = form.get(key)
             if isinstance(default, bool):
                 new_value = "true" if raw_value in {"true", "on", "1", "yes"} else "false"
+            elif isinstance(default, list):
+                new_value = ", ".join(
+                    [item.strip() for item in str(raw_value or "").split(",") if item.strip()]
+                ) if raw_value is not None else ", ".join(default)
             elif raw_value is None:
                 new_value = str(default)
             else:
                 new_value = str(raw_value).strip()
 
             setting = session.exec(select(AppSetting).where(AppSetting.key == key)).first()
-            previous_value = setting.value if setting is not None else str(default)
+            previous_value = (
+                setting.value
+                if setting is not None
+                else (", ".join(default) if isinstance(default, list) else str(default))
+            )
             if setting is None:
                 setting = AppSetting(key=key, value=new_value)
                 session.add(setting)
@@ -939,8 +1036,24 @@ async def admin_settings_update(request: Request):
                 setting.value = new_value
                 session.add(setting)
 
+            if str(previous_value) != str(new_value):
+                changed_keys.append(key)
             if key in MATCHING_SETTINGS and str(previous_value) != str(new_value):
                 dirty_changed = True
+            if key in AUDIO_SETTINGS_KEYS and str(previous_value) != str(new_value):
+                changed_audio_keys.append(key)
+            if key in AUDIO_MODEL_RELOAD_SETTINGS and str(previous_value) != str(new_value):
+                audio_model_reload_required = True
+
+        if audio_model_reload_required:
+            reload_setting = session.exec(
+                select(AppSetting).where(AppSetting.key == "AUDIO_MODEL_RELOAD_REQUIRED")
+            ).first()
+            if reload_setting is None:
+                session.add(AppSetting(key="AUDIO_MODEL_RELOAD_REQUIRED", value="true"))
+            else:
+                reload_setting.value = "true"
+                session.add(reload_setting)
 
         session.commit()
         if dirty_changed:
@@ -950,8 +1063,19 @@ async def admin_settings_update(request: Request):
             actor_user_id=getattr(current_user, "id", None),
             action="settings_update",
             entity_type="app_setting",
-            payload={"keys": list(EDITABLE_SETTINGS.keys()), "dirty_changed": dirty_changed},
+            payload={"keys": changed_keys, "dirty_changed": dirty_changed},
         )
+        if changed_audio_keys:
+            _audit_log(
+                session,
+                actor_user_id=getattr(current_user, "id", None),
+                action="audio_settings_update",
+                entity_type="app_setting",
+                payload={
+                    "keys": changed_audio_keys,
+                    "model_reload_required": audio_model_reload_required,
+                },
+            )
 
     return RedirectResponse(url="/admin/settings", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -982,6 +1106,32 @@ def admin_tester_page(request: Request) -> HTMLResponse:
     return _render(request, "tester.html", context)
 
 
+@router.get("/admin/audio-logs", response_class=HTMLResponse)
+def admin_audio_logs_page(request: Request) -> HTMLResponse:
+    current_user = _require_role(request, UserRole.VIEWER)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+
+    context = _load_audio_logs_context()
+    context["current_user"] = current_user
+    return _render(request, "audio_logs.html", context)
+
+
+@router.get("/admin/audio-tester", response_class=HTMLResponse)
+def admin_audio_tester_page(request: Request) -> HTMLResponse:
+    current_user = _require_role(request, UserRole.VIEWER)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+
+    context = _load_audio_tester_context()
+    context["current_user"] = current_user
+    return _render(request, "audio_tester.html", context)
+
+
 @router.post("/admin/tester/run", response_class=HTMLResponse)
 async def admin_tester_run(request: Request) -> HTMLResponse:
     await require_csrf(request)
@@ -1006,6 +1156,83 @@ async def admin_tester_run(request: Request) -> HTMLResponse:
         }
     )
     return _render(request, "tester.html", context)
+
+
+@router.post("/admin/audio-tester/transcribe", response_class=HTMLResponse)
+async def admin_audio_tester_transcribe(request: Request) -> HTMLResponse:
+    await require_csrf(request)
+    current_user = _require_role(request, UserRole.VIEWER)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+
+    form = await request.form()
+    upload_file = form.get("file")
+    language_hint = str(form.get("language_hint") or "").strip() or None
+
+    context = _load_audio_tester_context()
+    context.update(
+        {
+            "current_user": current_user,
+            "language_hint": language_hint or "",
+            "context_json": str(form.get("context_json") or ""),
+        }
+    )
+
+    if upload_file is None or not hasattr(upload_file, "filename"):
+        context["error"] = "Audio file is required."
+        return _render(request, "audio_tester.html", context, status_code=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        context["transcription_result"] = process_audio_transcription_upload(
+            upload_file,
+            language_hint=language_hint,
+        ).model_dump(mode="json")
+        return _render(request, "audio_tester.html", context)
+    except Exception as exc:
+        context["error"] = str(exc)
+        return _render(request, "audio_tester.html", context, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@router.post("/admin/audio-tester/normalize", response_class=HTMLResponse)
+async def admin_audio_tester_normalize(request: Request) -> HTMLResponse:
+    await require_csrf(request)
+    current_user = _require_role(request, UserRole.VIEWER)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+
+    form = await request.form()
+    upload_file = form.get("file")
+    language_hint = str(form.get("language_hint") or "").strip() or None
+    context_json = str(form.get("context_json") or "").strip() or None
+
+    context = _load_audio_tester_context()
+    context.update(
+        {
+            "current_user": current_user,
+            "language_hint": language_hint or "",
+            "context_json": context_json or "",
+        }
+    )
+
+    if upload_file is None or not hasattr(upload_file, "filename"):
+        context["error"] = "Audio file is required."
+        return _render(request, "audio_tester.html", context, status_code=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        context["normalize_result"] = process_audio_normalization_upload(
+            upload_file,
+            language_hint=language_hint,
+            context_json=context_json,
+        ).model_dump(mode="json")
+        context["transcription_result"] = context["normalize_result"]["transcription"]
+        return _render(request, "audio_tester.html", context)
+    except Exception as exc:
+        context["error"] = str(exc)
+        return _render(request, "audio_tester.html", context, status_code=status.HTTP_400_BAD_REQUEST)
 
 
 @router.post("/admin/tester/save-example")

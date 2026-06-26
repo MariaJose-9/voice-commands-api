@@ -21,6 +21,19 @@
     <label class="checkbox"><input type="checkbox" name="ENABLE_OLLAMA_FALLBACK" {% if settings.ENABLE_OLLAMA_FALLBACK in [True, 'true', 'True'] %}checked{% endif %}> <span>ENABLE_OLLAMA_FALLBACK</span></label>
     <label><span>SEMANTIC_MODEL_NAME</span><input type="text" name="SEMANTIC_MODEL_NAME" value="{{ settings.SEMANTIC_MODEL_NAME }}"></label>
     <label><span>MAX_TEXT_LENGTH</span><input type="number" name="MAX_TEXT_LENGTH" value="{{ settings.MAX_TEXT_LENGTH }}"></label>
+    <hr>
+    <label class="checkbox"><input type="checkbox" name="ENABLE_AUDIO_TRANSCRIPTION" {% if settings.ENABLE_AUDIO_TRANSCRIPTION in [True, 'true', 'True'] %}checked{% endif %}> <span>ENABLE_AUDIO_TRANSCRIPTION</span></label>
+    <label><span>TRANSCRIPTION_ENGINE</span><input type="text" name="TRANSCRIPTION_ENGINE" value="{{ settings.TRANSCRIPTION_ENGINE }}"></label>
+    <label><span>TRANSCRIPTION_MODEL_NAME</span><input type="text" name="TRANSCRIPTION_MODEL_NAME" value="{{ settings.TRANSCRIPTION_MODEL_NAME }}"></label>
+    <label><span>TRANSCRIPTION_DEVICE</span><input type="text" name="TRANSCRIPTION_DEVICE" value="{{ settings.TRANSCRIPTION_DEVICE }}"></label>
+    <label><span>TRANSCRIPTION_COMPUTE_TYPE</span><input type="text" name="TRANSCRIPTION_COMPUTE_TYPE" value="{{ settings.TRANSCRIPTION_COMPUTE_TYPE }}"></label>
+    <label><span>TRANSCRIPTION_BEAM_SIZE</span><input type="number" name="TRANSCRIPTION_BEAM_SIZE" value="{{ settings.TRANSCRIPTION_BEAM_SIZE }}"></label>
+    <label class="checkbox"><input type="checkbox" name="TRANSCRIPTION_VAD_FILTER" {% if settings.TRANSCRIPTION_VAD_FILTER in [True, 'true', 'True'] %}checked{% endif %}> <span>TRANSCRIPTION_VAD_FILTER</span></label>
+    <label><span>TRANSCRIPTION_LANGUAGE_DEFAULT</span><input type="text" name="TRANSCRIPTION_LANGUAGE_DEFAULT" value="{{ settings.TRANSCRIPTION_LANGUAGE_DEFAULT }}"></label>
+    <label><span>MAX_AUDIO_FILE_MB</span><input type="number" name="MAX_AUDIO_FILE_MB" value="{{ settings.MAX_AUDIO_FILE_MB }}"></label>
+    <label><span>MAX_AUDIO_DURATION_SECONDS</span><input type="number" name="MAX_AUDIO_DURATION_SECONDS" value="{{ settings.MAX_AUDIO_DURATION_SECONDS }}"></label>
+    <label><span>ALLOWED_AUDIO_EXTENSIONS</span><input type="text" name="ALLOWED_AUDIO_EXTENSIONS" value="{{ settings.ALLOWED_AUDIO_EXTENSIONS }}"></label>
+    <label><span>ALLOWED_AUDIO_MIME_TYPES</span><input type="text" name="ALLOWED_AUDIO_MIME_TYPES" value="{{ settings.ALLOWED_AUDIO_MIME_TYPES }}"></label>
     <button class="button" type="submit">Save Settings</button>
   </form>
 </section>

@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.admin.router import router as admin_router
+from app.audio.router import router as audio_router
 from app.config import (
     ALLOWED_ORIGINS,
     ENABLE_SEMANTIC_MATCHER,
@@ -61,6 +62,7 @@ app.mount(
     name="admin-static",
 )
 app.include_router(admin_router)
+app.include_router(audio_router)
 
 @lru_cache(maxsize=1)
 def _get_examples() -> list[dict[str, Any]]:

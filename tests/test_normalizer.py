@@ -183,7 +183,25 @@ def test_normalize_monitor_and_absolute_size_with_joined_unit() -> None:
     assert response.commands[1].size_inches == 55
 
 
-def test_normalize_unknown_returns_confirmation() -> None:
+def test_normalize_unknown_returns_confirmation(monkeypatch) -> None:
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_bool_setting",
+        lambda key, default: False
+        if key in {"ENABLE_SEMANTIC_MATCHER", "ENABLE_OLLAMA_FALLBACK"}
+        else default,
+    )
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_float_setting",
+        lambda key, default: default,
+    )
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_int_setting",
+        lambda key, default: default,
+    )
+
     response = normalize_command_text("abracadabra orbital")
     assert [command.command for command in response.commands] == [CommandName.UNKNOWN]
     assert response.needs_confirmation is True

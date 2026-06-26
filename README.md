@@ -82,14 +82,18 @@ Esto hace:
 * ejecuta `alembic upgrade head`
 * corre el seed inicial con `python -m app.db.seed`
 * inicia la API en `http://localhost:8000`
-* no expone MySQL al host por defecto, para no chocar con un MySQL local en `3306`
+* expone MySQL al host en `3307`, para no chocar con un MySQL local en `3306`
 * usa una imagen de desarrollo más liviana sin `sentence-transformers`, porque `ENABLE_SEMANTIC_MATCHER=false`
+* habilita transcripción de audio con `faster-whisper` usando `TRANSCRIPTION_MODEL_NAME=tiny`
+* monta caché persistente para modelos en `hf_cache`
+* monta temporales de audio en `audio_tmp`
 
 Probar:
 
 ```bash
 curl http://localhost:8000/health
 curl http://localhost:8000/health/db
+curl http://localhost:8000/v1/audio/status
 ```
 
 Panel admin:
@@ -115,7 +119,9 @@ ports:
 Notas:
 
 * En `docker-compose.yml` el matcher semántico queda desactivado con `ENABLE_SEMANTIC_MATCHER=false` para un arranque inicial más rápido.
-* El `Dockerfile` usa por defecto `requirements-docker.txt` para evitar descargar dependencias pesadas como `torch` cuando el matcher semántico está apagado.
+* En Docker la transcripción de audio queda activa con `faster-whisper` y modelo `tiny`, para reducir tiempo de arranque y consumo en desarrollo.
+* El `Dockerfile` usa por defecto `requirements-docker.txt`; ese archivo ya incluye `faster-whisper`.
+* No se fuerza `warmup` al startup. El modelo de audio se carga lazy cuando llamas `/v1/audio/transcribe`, `/v1/audio/normalize` o `/v1/audio/warmup`.
 * Si necesitas una imagen con el stack completo, puedes construirla con:
 
 ```bash
@@ -158,6 +164,21 @@ ENABLE_OLLAMA_FALLBACK=false
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen2.5:3b
 SEMANTIC_MODEL_NAME=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+ENABLE_AUDIO_TRANSCRIPTION=true
+ENABLE_AUDIO_TRANSCRIPTION_LOGS=true
+TRANSCRIPTION_ENGINE=faster_whisper
+TRANSCRIPTION_MODEL_NAME=base
+TRANSCRIPTION_DEVICE=cpu
+TRANSCRIPTION_COMPUTE_TYPE=int8
+TRANSCRIPTION_BEAM_SIZE=1
+TRANSCRIPTION_VAD_FILTER=false
+TRANSCRIPTION_LANGUAGE_DEFAULT=
+MAX_AUDIO_FILE_MB=10
+MAX_AUDIO_DURATION_SECONDS=30
+ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3
+ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,application/octet-stream
+AUDIO_TEMP_DIR=/tmp/voice-command-audio
+AUDIO_MODEL_WARMUP_ON_STARTUP=false
 FUZZY_THRESHOLD=88
 SEMANTIC_THRESHOLD=0.72
 SEMANTIC_CONFIRMATION_THRESHOLD=0.62
@@ -190,6 +211,220 @@ MAX_TEXT_LENGTH=500
 Nota:
 
 La primera llamada que use el matcher semántico puede demorar porque `sentence-transformers` puede descargar el modelo en el primer uso.
+
+---
+
+## Audio transcription
+
+El API puede recibir archivos `.ogg` o `.mp3`.
+
+La transcripción usa `faster-whisper` de forma local/offline y carga el modelo de manera lazy: no se descarga ni se inicializa hasta que llamas un endpoint de audio o haces warmup manual.
+
+Comportamiento actual:
+
+* puede transcribir solamente
+* puede transcribir y luego normalizar el texto transcrito con el pipeline existente
+* no guarda el audio por defecto
+* el archivo subido se guarda solo de forma temporal
+* el audio temporal se borra después de procesarlo
+
+### Variables de entorno de audio
+
+```bash
+ENABLE_AUDIO_TRANSCRIPTION=true
+TRANSCRIPTION_ENGINE=faster_whisper
+TRANSCRIPTION_MODEL_NAME=base
+TRANSCRIPTION_DEVICE=cpu
+TRANSCRIPTION_COMPUTE_TYPE=int8
+TRANSCRIPTION_BEAM_SIZE=1
+TRANSCRIPTION_VAD_FILTER=false
+TRANSCRIPTION_LANGUAGE_DEFAULT=
+MAX_AUDIO_FILE_MB=10
+MAX_AUDIO_DURATION_SECONDS=30
+ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3
+ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,application/octet-stream
+AUDIO_TEMP_DIR=/tmp/voice-command-audio
+ENABLE_AUDIO_TRANSCRIPTION_LOGS=true
+```
+
+### Endpoints de audio
+
+```text
+GET  /v1/audio/status
+POST /v1/audio/warmup
+POST /v1/audio/transcribe
+POST /v1/audio/normalize
+```
+
+### Ejemplo `status`
+
+```bash
+curl http://localhost:8000/v1/audio/status
+```
+
+### Ejemplo `transcribe`
+
+```bash
+curl -X POST http://localhost:8000/v1/audio/transcribe \
+  -F "file=@sample.mp3" \
+  -F "language_hint=es"
+```
+
+Respuesta de ejemplo:
+
+```json
+{
+  "ok": true,
+  "text": "monitor dos y acercalo",
+  "language": "es",
+  "duration_seconds": 1.84,
+  "engine": "faster_whisper",
+  "model": "base",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 1.84,
+      "text": "monitor dos y acercalo"
+    }
+  ],
+  "message": null
+}
+```
+
+### Ejemplo `normalize`
+
+```bash
+curl -X POST http://localhost:8000/v1/audio/normalize \
+  -F "file=@sample.ogg" \
+  -F "language_hint=es" \
+  -F 'context_json={"selected_monitor":null}'
+```
+
+Respuesta de ejemplo:
+
+```json
+{
+  "ok": true,
+  "transcription": {
+    "ok": true,
+    "text": "monitor dos y acercalo",
+    "language": "es",
+    "duration_seconds": 1.84,
+    "engine": "faster_whisper",
+    "model": "base",
+    "segments": [
+      {
+        "start": 0.0,
+        "end": 1.84,
+        "text": "monitor dos y acercalo"
+      }
+    ],
+    "message": null
+  },
+  "normalization": {
+    "ok": true,
+    "raw_text": "monitor dos y acercalo",
+    "normalized_text": "monitor dos y acercalo",
+    "language": "es",
+    "commands": [
+      {
+        "command": "SELECT_MONITOR",
+        "confidence": 1.0,
+        "method": "entity_rule",
+        "monitor": 2,
+        "layout": null,
+        "size_inches": null,
+        "value": null,
+        "raw_fragment": "monitor dos"
+      },
+      {
+        "command": "ZOOM_IN",
+        "confidence": 1.0,
+        "method": "exact_rule",
+        "monitor": null,
+        "layout": null,
+        "size_inches": null,
+        "value": null,
+        "raw_fragment": "acercalo"
+      }
+    ],
+    "needs_confirmation": false,
+    "message": null
+  },
+  "message": null
+}
+```
+
+### Recomendación de modelos
+
+* `tiny`
+  Más rápido, menor precisión. Bueno para desarrollo y pruebas locales rápidas.
+* `base`
+  Balance inicial recomendado para empezar.
+* `small`
+  Mejor precisión, pero más pesado en CPU/RAM y más lento al cargar.
+
+### Notas de producción
+
+* limita tamaño con `MAX_AUDIO_FILE_MB`
+* limita duración con `MAX_AUDIO_DURATION_SECONDS`
+* no guardes audio si no es estrictamente necesario
+* usa HTTPS si recibes audio desde clientes externos
+* considera colas o workers si vas a procesar audios largos o concurrencia alta
+* no actives warmup automático si el servidor tiene poca RAM
+
+En Docker Compose de desarrollo se usa por defecto:
+
+* `TRANSCRIPTION_MODEL_NAME=tiny`
+* `TRANSCRIPTION_DEVICE=cpu`
+* `TRANSCRIPTION_COMPUTE_TYPE=int8`
+
+Eso permite probar audio localmente sin forzar un modelo más pesado al arrancar el stack.
+
+## Docker Audio
+
+Con Docker Compose, la API monta dos volúmenes útiles para audio:
+
+* `hf_cache:/root/.cache/huggingface`
+  Persistencia del caché de modelos para evitar descargas repetidas.
+* `audio_tmp:/tmp/voice-command-audio`
+  Directorio temporal para uploads de audio mientras se procesan.
+
+Flujo esperado:
+
+```bash
+docker compose up --build
+curl http://localhost:8000/v1/audio/status
+```
+
+El modelo de transcripción no se precarga al startup. Se carga la primera vez que uses:
+
+* `POST /v1/audio/transcribe`
+* `POST /v1/audio/normalize`
+* `POST /v1/audio/warmup`
+
+---
+
+## Audio troubleshooting
+
+Si la parte de audio no responde como esperas, revisa esto:
+
+* La primera llamada puede ser lenta porque el modelo puede descargarse o inicializarse en el primer uso.
+* Para desarrollo usa `TRANSCRIPTION_MODEL_NAME=tiny`; carga más rápido y consume menos recursos.
+* Si quieres desactivar completamente audio, usa `ENABLE_AUDIO_TRANSCRIPTION=false`.
+* Revisa el estado efectivo con:
+
+```bash
+curl http://localhost:8000/v1/audio/status
+```
+
+* Si quieres cargar manualmente el modelo antes de la primera transcripción, usa:
+
+```bash
+curl -X POST http://localhost:8000/v1/audio/warmup
+```
+
+* No actives warmup automático si el servidor tiene poca RAM; es mejor mantener lazy loading.
 
 ---
 
@@ -232,8 +467,12 @@ La protección CSRF actual cubre formularios autenticados del panel. Como siguie
 GET  /
 GET  /health
 GET  /health/db
+GET  /v1/audio/status
 GET  /v1/commands/catalog
 GET  /v1/commands/examples
+POST /v1/audio/warmup
+POST /v1/audio/transcribe
+POST /v1/audio/normalize
 POST /v1/commands/normalize
 POST /v1/commands/warmup
 POST /v1/commands/debug
@@ -241,6 +480,9 @@ POST /v1/commands/debug
 
 Notas:
 
+* `POST /v1/audio/warmup` carga manualmente el modelo de transcripción sin procesar un archivo real.
+* `POST /v1/audio/transcribe` solo transcribe audio y devuelve texto.
+* `POST /v1/audio/normalize` transcribe audio y luego ejecuta el normalizer existente.
 * `POST /v1/commands/debug` solo está disponible fuera de producción.
 * `POST /v1/commands/warmup` sirve para cargar manualmente el modelo semántico antes de recibir comandos reales.
 * `GET /health/db` intenta ejecutar `SELECT 1` contra MySQL.

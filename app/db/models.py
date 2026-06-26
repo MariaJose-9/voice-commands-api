@@ -226,6 +226,44 @@ class NormalizationLog(SQLModel, table=True):
     )
 
 
+class AudioTranscriptionLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    filename: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(255), nullable=True),
+    )
+    content_type: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(128), nullable=True),
+    )
+    size_bytes: Optional[int] = Field(default=None)
+    language_hint: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(32), nullable=True),
+    )
+    detected_language: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(32), nullable=True),
+    )
+    transcribed_text: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(4000), nullable=True),
+    )
+    duration_seconds: Optional[float] = Field(default=None)
+    engine: str = Field(sa_column=Column(String(128), nullable=False))
+    model: str = Field(sa_column=Column(String(255), nullable=False))
+    ok: bool = Field(default=True)
+    error_message: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(1024), nullable=True),
+    )
+    used_for_normalization: bool = Field(default=False)
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+
+
 class CatalogVersion(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     version_number: int = Field(index=True, unique=True)

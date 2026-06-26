@@ -10,6 +10,10 @@ ENV PIP_DEFAULT_TIMEOUT=300 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_PROGRESS_BAR=off
 
+# `faster-whisper` depends on PyAV wheels, which already bundle the FFmpeg
+# libraries needed for `.ogg` / `.mp3` decoding in this setup. For that reason
+# we keep the image slim and avoid extra system packages unless a future build
+# or target environment proves they are necessary.
 COPY requirements.txt .
 COPY requirements-docker.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \

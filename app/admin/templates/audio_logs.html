@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Audio Logs{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Audio</p>
+      <h2>Transcription Logs</h2>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Filename</th>
+          <th>Size</th>
+          <th>Language</th>
+          <th>Text</th>
+          <th>Duration</th>
+          <th>OK</th>
+          <th>Normalize</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.created_at }}</td>
+          <td>{{ log.filename or "-" }}</td>
+          <td>{{ log.size_bytes or "-" }}</td>
+          <td>{{ log.detected_language or log.language_hint or "-" }}</td>
+          <td>{{ log.transcribed_text or log.error_message or "-" }}</td>
+          <td>{{ log.duration_seconds or "-" }}</td>
+          <td>{{ "yes" if log.ok else "no" }}</td>
+          <td>{{ "yes" if log.used_for_normalization else "no" }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8">No audio logs yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

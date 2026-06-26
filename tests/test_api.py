@@ -193,6 +193,18 @@ def test_admin_tester_requires_login() -> None:
     assert response.headers["location"] == "/admin/login"
 
 
+def test_admin_audio_logs_requires_login() -> None:
+    response = client.get("/admin/audio-logs", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/login"
+
+
+def test_admin_audio_tester_requires_login() -> None:
+    response = client.get("/admin/audio-tester", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/login"
+
+
 def test_warmup_endpoint_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main_module, "ENABLE_SEMANTIC_MATCHER", False)
     response = client.post("/v1/commands/warmup")

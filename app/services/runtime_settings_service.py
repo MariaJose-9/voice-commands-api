@@ -61,3 +61,40 @@ def get_int_setting(key: str, default: int) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def get_str_setting(key: str, default: str) -> str:
+    value = get_runtime_setting(key, default)
+    if value is None:
+        return default
+    return str(value)
+
+
+def get_list_setting(key: str, default: list[str]) -> list[str]:
+    value = get_runtime_setting(key, default)
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        parts = [item.strip() for item in value.split(",")]
+        return [item for item in parts if item]
+    return default
+
+
+def get_audio_bool_setting(key: str, default: bool) -> bool:
+    return get_bool_setting(key, default)
+
+
+def get_audio_int_setting(key: str, default: int) -> int:
+    return get_int_setting(key, default)
+
+
+def get_audio_float_setting(key: str, default: float) -> float:
+    return get_float_setting(key, default)
+
+
+def get_audio_str_setting(key: str, default: str) -> str:
+    return get_str_setting(key, default)
+
+
+def get_audio_list_setting(key: str, default: list[str]) -> list[str]:
+    return get_list_setting(key, default)
