@@ -1,0 +1,398 @@
+{
+  "info": {
+    "name": "voice-command-api",
+    "_postman_id": "7aabdc8d-37ce-4eb5-8f59-voice-command-api",
+    "description": "Postman collection for local testing of voice-command-api commands, audio, health, and development utilities.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "language_hint",
+      "value": "es"
+    },
+    {
+      "key": "critical_text",
+      "value": "pantalla 2 mueve la la derecha y luego las es en el tamaño de 55 puladas"
+    },
+    {
+      "key": "audio_file_path",
+      "value": "sample.mp3"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /health/db",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/db",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health",
+                "db"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Commands",
+      "item": [
+        {
+          "name": "GET /v1/commands/catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/commands/catalog",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "commands",
+                "catalog"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /v1/commands/examples",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/commands/examples",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "commands",
+                "examples"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /v1/commands/normalize - critical text",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"{{critical_text}}\",\n  \"language_hint\": \"{{language_hint}}\",\n  \"context\": {\n    \"selected_monitor\": null\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/commands/normalize",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "commands",
+                "normalize"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /v1/commands/normalize - set size",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"pon el monitor dos en sesenta y cinco pulgadas\",\n  \"language_hint\": \"es\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/commands/normalize",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "commands",
+                "normalize"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /v1/commands/debug",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"{{critical_text}}\",\n  \"language_hint\": \"{{language_hint}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/commands/debug",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "commands",
+                "debug"
+              ]
+            },
+            "description": "Development only. Returns 404 when ENV=production."
+          }
+        },
+        {
+          "name": "POST /v1/commands/warmup",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/commands/warmup",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "commands",
+                "warmup"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /v1/commands/reload",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/commands/reload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "commands",
+                "reload"
+              ]
+            },
+            "description": "Development only. Clears runtime caches and rebuilds indexes if enabled."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audio",
+      "item": [
+        {
+          "name": "GET /v1/audio/status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/audio/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /v1/audio/warmup",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/audio/warmup",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "warmup"
+              ]
+            },
+            "description": "Loads the configured faster-whisper model. First run may download the model."
+          }
+        },
+        {
+          "name": "POST /v1/audio/transcribe",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{audio_file_path}}"
+                },
+                {
+                  "key": "language_hint",
+                  "value": "{{language_hint}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/audio/transcribe",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "transcribe"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /v1/audio/normalize",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "{{audio_file_path}}"
+                },
+                {
+                  "key": "language_hint",
+                  "value": "{{language_hint}}",
+                  "type": "text"
+                },
+                {
+                  "key": "context_json",
+                  "value": "{\"selected_monitor\":null}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/audio/normalize",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "normalize"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Dev",
+      "item": [
+        {
+          "name": "POST /admin/dev/seed",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dev/seed",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "dev",
+                "seed"
+              ]
+            },
+            "description": "Development only. Returns 404 in production."
+          }
+        },
+        {
+          "name": "POST /admin/dev/publish-initial-catalog",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dev/publish-initial-catalog",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "dev",
+                "publish-initial-catalog"
+              ]
+            },
+            "description": "Development only. Publishes the seeded catalog to create an active version."
+          }
+        }
+      ]
+    }
+  ]
+}

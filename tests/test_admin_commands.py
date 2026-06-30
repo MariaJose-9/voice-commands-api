@@ -485,6 +485,22 @@ def test_admin_audio_tester_normalize_uses_mocked_audio_flow(
             message=None,
         ),
     )
+    monkeypatch.setattr(
+        admin_router_module,
+        "build_debug_response",
+        lambda payload: {
+            "raw_text": payload.text,
+            "normalized_text": "monitor two and zoom in",
+            "fragments": ["monitor two", "zoom in"],
+            "entities_by_fragment": [
+                {"fragment": "monitor two", "entities": {"monitor": 2}},
+            ],
+            "rule_matches": [],
+            "fuzzy_candidates": [],
+            "semantic_candidates": [],
+            "final_response": {},
+        },
+    )
 
     response = client.post(
         "/admin/audio-tester/normalize",
@@ -496,6 +512,10 @@ def test_admin_audio_tester_normalize_uses_mocked_audio_flow(
     assert response.status_code == 200
     assert "monitor two and zoom in" in response.text
     assert "SELECT_MONITOR" in response.text
+    assert "Entities By Fragment" in response.text
+    assert "Fuzzy Candidates" in response.text
+    assert "Semantic Candidates" in response.text
+    assert "Convert transcription to example" in response.text
 
 
 def test_admin_can_publish_catalog(client_with_sqlite, monkeypatch) -> None:

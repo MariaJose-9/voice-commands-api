@@ -50,11 +50,13 @@ def clear_fuzzy_cache() -> None:
 def _score_text(query: str, candidate: str) -> float:
     """Return a fuzzy score in the 0-100 range."""
 
-    return max(
+    scores = [
         float(fuzz.WRatio(query, candidate)),
         float(fuzz.token_set_ratio(query, candidate)),
-        float(fuzz.partial_ratio(query, candidate)),
-    )
+    ]
+    if min(len(query), len(candidate)) > 5 or max(len(query), len(candidate)) <= 6:
+        scores.append(float(fuzz.partial_ratio(query, candidate)))
+    return max(scores)
 
 
 def _has_required_entities(command: CommandName, entities: dict[str, Any]) -> bool:

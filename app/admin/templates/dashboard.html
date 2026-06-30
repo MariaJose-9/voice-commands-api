@@ -12,6 +12,7 @@
     <div class="pill-row">
       <span class="pill">ENV: {{ dashboard.env }}</span>
       <span class="pill">Semantic: {{ "on" if dashboard.semantic_enabled else "off" }}</span>
+      <span class="pill">Transcription: {{ dashboard.transcription_model }}</span>
       <span class="pill">Pending publish: {{ "yes" if dashboard.catalog_dirty else "no" }}</span>
       <span class="pill">Admin: {{ current_user.email }}</span>
       {% if dashboard.catalog_dirty %}

@@ -13,8 +13,6 @@ from app.config import (
     ADMIN_EMAIL,
     ADMIN_PASSWORD,
     ENABLE_OLLAMA_FALLBACK,
-    ENABLE_SEMANTIC_MATCHER,
-    FUZZY_THRESHOLD,
     SEMANTIC_CONFIRMATION_THRESHOLD,
     SEMANTIC_THRESHOLD,
 )
@@ -32,6 +30,7 @@ from app.db.models import (
 )
 from app.db.session import Session as SessionType, engine
 from app.preprocessor import normalize_text
+from app.schemas import CommandName
 
 
 CATALOG_PATH = Path(__file__).resolve().parent.parent / "commands" / "catalog.yml"
@@ -88,12 +87,17 @@ def seed_commands_from_yaml(
 
     for item in commands:
         code = item["command"]
+        try:
+            command_name = CommandName(code)
+        except ValueError:
+            continue
+
         command = session.exec(
-            select(CommandDefinition).where(CommandDefinition.code == code)
+            select(CommandDefinition).where(CommandDefinition.code == command_name)
         ).first()
         if command is None:
             command = CommandDefinition(
-                code=code,
+                code=command_name,
                 display_name=code.replace("_", " ").title(),
                 description=item.get("description"),
                 category=item.get("category") or _infer_category(code),
@@ -107,10 +111,11 @@ def seed_commands_from_yaml(
 
         for phrase in item.get("examples", []):
             normalized_phrase = normalize_text(phrase)
+            if not normalized_phrase:
+                continue
             exists = session.exec(
                 select(CommandExample).where(
                     CommandExample.command_id == command.id,
-                    CommandExample.phrase == phrase,
                     CommandExample.normalized_phrase == normalized_phrase,
                 )
             ).first()
@@ -182,10 +187,11 @@ def _create_aliases(
     created = 0
     for phrase in phrases:
         normalized_phrase = normalize_text(phrase)
+        if not normalized_phrase:
+            continue
         exists = session.exec(
             select(EntityValueAlias).where(
                 EntityValueAlias.entity_value_id == entity_value_id,
-                EntityValueAlias.phrase == phrase,
                 EntityValueAlias.normalized_phrase == normalized_phrase,
             )
         ).first()
@@ -228,11 +234,29 @@ def seed_default_entities(session: Session) -> dict:
             "monitor one",
             "monitor 1",
             "monitor uno",
-            "first monitor",
-            "primer monitor",
             "pantalla uno",
+            "pantalla una",
+            "pantalla 1",
+            "la pantalla uno",
+            "la pantalla una",
+            "monitor numero uno",
+            "monitor número uno",
+            "pantalla numero uno",
+            "pantalla número uno",
+            "primera pantalla",
+            "la primera pantalla",
+            "primer monitor",
+            "el primer monitor",
+            "first monitor",
             "screen one",
             "screen 1",
+            "screen number one",
+            "display one",
+            "display 1",
+            "monito uno",
+            "monito 1",
+            "monitr one",
+            "moniter one",
         ],
     )
     created_aliases += _create_aliases(
@@ -242,11 +266,27 @@ def seed_default_entities(session: Session) -> dict:
             "monitor two",
             "monitor 2",
             "monitor dos",
-            "second monitor",
-            "segundo monitor",
             "pantalla dos",
+            "pantalla 2",
+            "la pantalla dos",
+            "monitor numero dos",
+            "monitor número dos",
+            "pantalla numero dos",
+            "pantalla número dos",
+            "segunda pantalla",
+            "la segunda pantalla",
+            "segundo monitor",
+            "el segundo monitor",
+            "second monitor",
             "screen two",
             "screen 2",
+            "screen number two",
+            "display two",
+            "display 2",
+            "monito dos",
+            "monito 2",
+            "monitr two",
+            "moniter two",
         ],
     )
     created_aliases += _create_aliases(
@@ -258,6 +298,13 @@ def seed_default_entities(session: Session) -> dict:
             "layout uno",
             "first layout",
             "primer layout",
+            "primer diseño",
+            "primer diseno",
+            "diseno uno",
+            "diseño uno",
+            "vista uno",
+            "vista 1",
+            "primera vista",
         ],
     )
     created_aliases += _create_aliases(
@@ -269,8 +316,71 @@ def seed_default_entities(session: Session) -> dict:
             "layout dos",
             "second layout",
             "segundo layout",
+            "segundo diseño",
+            "segundo diseno",
+            "diseno dos",
+            "diseño dos",
+            "vista dos",
+            "vista 2",
+            "segunda vista",
         ],
     )
+
+    spoken_size_aliases = {
+        "55": [
+            "cincuenta y cinco",
+            "cincuenta cinco",
+            "cincuenta y cinco pulgadas",
+            "cincuenta cinco pulgadas",
+            "cincuenta y cinco puladas",
+            "fifty five",
+            "fifty five inch",
+            "fifty five inches",
+        ],
+        "65": [
+            "sesenta y cinco",
+            "sesenta cinco",
+            "sesenta y cinco pulgadas",
+            "sesenta cinco pulgadas",
+            "sesenta y cinco puladas",
+            "sixty five",
+            "sixty five inch",
+            "sixty five inches",
+        ],
+        "75": [
+            "setenta y cinco",
+            "setenta cinco",
+            "setenta y cinco pulgadas",
+            "setenta cinco pulgadas",
+            "setenta y cinco puladas",
+            "seventy five",
+            "seventy five inch",
+            "seventy five inches",
+        ],
+        "95": [
+            "noventa y cinco",
+            "noventa cinco",
+            "noventa y cinco pulgadas",
+            "noventa cinco pulgadas",
+            "noventa y cinco puladas",
+            "ninety five",
+            "ninety five inch",
+            "ninety five inches",
+        ],
+        "120": [
+            "ciento veinte",
+            "cien veinte",
+            "ciento veinte pulgadas",
+            "cien veinte pulgadas",
+            "ciento veinte puladas",
+            "one hundred twenty",
+            "one hundred twenty inch",
+            "one hundred twenty inches",
+            "one twenty",
+            "one twenty inch",
+            "one twenty inches",
+        ],
+    }
 
     for value in ["55", "65", "75", "95", "120"]:
         entity_value = _get_or_create_entity_value(
@@ -285,10 +395,24 @@ def seed_default_entities(session: Session) -> dict:
             [
                 f"{value} inch",
                 f"{value} inches",
+                f"{value} pulgada",
                 f"{value} pulgadas",
+                f"{value} puladas",
                 f"tamano {value}",
                 f"tamaño {value}",
-            ],
+                f"tamano de {value}",
+                f"tamaño de {value}",
+                f"a {value}",
+                f"en {value}",
+                f"de {value}",
+                f"pantalla {value}",
+                f"pantalla de {value}",
+                f"monitor {value}",
+                f"monitor de {value}",
+                f"set {value} inches",
+                f"ponlo en {value} pulgadas",
+            ]
+            + spoken_size_aliases[value],
         )
 
     session.commit()
@@ -304,11 +428,12 @@ def seed_default_settings(session: Session) -> dict:
     """Seed default runtime settings."""
 
     settings = {
-        "FUZZY_THRESHOLD": str(FUZZY_THRESHOLD),
+        "FUZZY_THRESHOLD": "86",
         "SEMANTIC_THRESHOLD": str(SEMANTIC_THRESHOLD),
         "SEMANTIC_CONFIRMATION_THRESHOLD": str(SEMANTIC_CONFIRMATION_THRESHOLD),
-        "ENABLE_SEMANTIC_MATCHER": str(ENABLE_SEMANTIC_MATCHER).lower(),
+        "ENABLE_SEMANTIC_MATCHER": "true",
         "ENABLE_OLLAMA_FALLBACK": str(ENABLE_OLLAMA_FALLBACK).lower(),
+        "TRANSCRIPTION_MODEL_NAME": "base",
     }
     created = 0
 

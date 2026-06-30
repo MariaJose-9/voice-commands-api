@@ -14,10 +14,53 @@
       <span class="pill">Logs: {{ logs|length }}</span>
     </div>
   </div>
+  {% if catalog_dirty %}
+  <div class="notice">
+    Changes pending. Publish catalog to activate.
+  </div>
+  {% endif %}
+
+  <div class="filter-row">
+    {% for option, label in [
+      ("pending", "Pending"),
+      ("unknown", "Unknown"),
+      ("needs_confirmation", "Needs confirmation"),
+      ("audio_only", "Audio only"),
+      ("last_24h", "Last 24h"),
+      ("last_7d", "Last 7d")
+    ] %}
+    <a class="button button-small {% if review_filter != option %}button-secondary{% endif %}" href="/admin/review?filter={{ option }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  <form id="bulk-review-form" method="post" action="/admin/review/bulk" class="form-stack bulk-actions">
+    <div class="inline-form">
+      <select name="bulk_action" required>
+        <option value="ignore">Ignore selected</option>
+        <option value="convert">Convert selected to command</option>
+      </select>
+      <select name="command_id">
+        <option value="">Choose command for convert</option>
+        {% for command in commands %}
+        <option value="{{ command.id }}">{{ command.code }}</option>
+        {% endfor %}
+      </select>
+      <select name="match_type">
+        <option value="exact">exact</option>
+        <option value="fuzzy">fuzzy</option>
+        <option value="semantic" selected>semantic</option>
+      </select>
+      <input type="text" name="language" placeholder="lang">
+      <button class="button button-small" type="submit">Apply bulk action</button>
+    </div>
+  </form>
+
   <table class="data-table">
     <thead>
       <tr>
+        <th>Select</th>
         <th>Created</th>
+        <th>Source</th>
         <th>Raw</th>
         <th>Normalized</th>
         <th>Confidence</th>
@@ -28,9 +71,18 @@
       </tr>
     </thead>
     <tbody>
-      {% for log in logs %}
+      {% for row in logs %}
+      {% set log = row.log %}
       <tr>
+        <td><input form="bulk-review-form" type="checkbox" name="log_ids" value="{{ log.id }}"></td>
         <td>{{ log.created_at }}</td>
+        <td>
+          {% if row.is_audio %}
+          <span class="pill">audio</span>
+          {% else %}
+          <span class="pill">text</span>
+          {% endif %}
+        </td>
         <td>{{ log.raw_text }}</td>
         <td>{{ log.normalized_text or "-" }}</td>
         <td>{{ log.top_confidence if log.top_confidence is not none else "-" }}</td>
@@ -57,12 +109,17 @@
               <option value="semantic" selected>semantic</option>
             </select>
             <input type="text" name="language" placeholder="lang">
-            <button class="button button-small" type="submit">Convert</button>
+            <button class="button button-small" type="submit">Convert to example</button>
           </form>
         </td>
         <td>
-          <form method="post" action="/admin/review/{{ log.id }}/ignore">
+          <form method="post" action="/admin/review/{{ log.id }}/ignore" class="compact-form">
             <button class="button button-secondary button-small" type="submit">Ignore</button>
+          </form>
+          <form method="post" action="/admin/tester/run" class="compact-form">
+            <input type="hidden" name="text" value="{{ log.raw_text }}">
+            <input type="hidden" name="language_hint" value="{{ log.language or '' }}">
+            <button class="button button-secondary button-small" type="submit">Test again</button>
           </form>
         </td>
       </tr>

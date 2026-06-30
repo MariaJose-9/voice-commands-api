@@ -1,0 +1,4350 @@
+[
+  {
+    "text": "monitor uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "monitor 1",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "pantalla uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "pantalla una",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "pantalla 1",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "pantalla numero uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "pantalla número uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "monitor numero uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "monitor número uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "primera pantalla",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "la primera pantalla",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "primer monitor",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "el primer monitor",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "screen one",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "screen 1",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "screen number one",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "display one",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "display 1",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "selecciona monitor uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "selecciona la pantalla uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "selecciona pantalla uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "selecciona la pantalla una",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "quiero la pantalla uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "cambia a la pantalla uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "usa la pantalla uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "coja la pantalla una",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "agarra pantalla uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "toma la pantalla uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "monito uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "monitr one",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "moniter one",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "pantaya uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "pantaya una",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "pantaia uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      }
+    ]
+  },
+  {
+    "text": "monitor dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "monitor 2",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "pantalla 2",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "pantalla numero dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "pantalla número dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "monitor numero dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "monitor número dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "segunda pantalla",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "la segunda pantalla",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "segundo monitor",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "el segundo monitor",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "screen two",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "screen 2",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "screen number two",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "display two",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "display 2",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "selecciona monitor dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "selecciona la pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "selecciona pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "quiero la pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "cambia a la pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "usa la pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "coja la pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "agarra pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "toma la pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "monito dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "monito 2",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "monitr two",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "moniter two",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "pantaya dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "pantaya 2",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "pantalia dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      }
+    ]
+  },
+  {
+    "text": "izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "left",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "move left",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "mueve a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "mover a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "mueve la pantalla a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "mueve el monitor a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "lleva la pantalla a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "pásalo a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "pasalo a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "un poco a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "desplaza a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "mueve hacia la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "mueve la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "mover izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "pantalla a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "monitor a la izquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "izquerda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "isquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "esquierda",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "licuada",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "mueve la licuada",
+    "expected": [
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "pantalla uno a la izquierda",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "monitor dos izquierda",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "right",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "move right",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "mueve a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "mover a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "mueve la pantalla a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "mueve el monitor a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "lleva la pantalla a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "pásalo a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "pasalo a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "un poco a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "desplaza a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "mueve hacia la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "mueve la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "mover derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "pantalla a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "monitor a la derecha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "dereca",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "dereha",
+    "expected": [
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "pantalla dos a la derecha",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "monitor uno derecha",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "monito uno a la dereca",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "MOVE_RIGHT"
+      }
+    ]
+  },
+  {
+    "text": "arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "up",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "move up",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "mueve arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "mover hacia arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "mueve la pantalla arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "mueve el monitor arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "súbelo",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "subelo",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "súbelo un poco",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "subelo un poco",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "más arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "mas arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "desplaza hacia arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "pantalla arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "monitor arriba",
+    "expected": [
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "pantalla uno arriba",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "monitor dos arriba",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_UP"
+      }
+    ]
+  },
+  {
+    "text": "abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "down",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "move down",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "mueve abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "mover hacia abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "mueve la pantalla abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "mueve el monitor abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "bájalo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "bajalo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "bájalo un poco",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "bajalo un poco",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "más abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "mas abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "desplaza hacia abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "pantalla abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "monitor abajo",
+    "expected": [
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "pantalla uno abajo",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "monitor dos abajo",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_DOWN"
+      }
+    ]
+  },
+  {
+    "text": "55 inch",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "55 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "55 pulgada",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "55 pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "55 puladas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "tamaño 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "tamano 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "tamaño de 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "tamano de 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "a 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "en 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "de 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "pantalla 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "pantalla de 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "monitor 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "monitor de 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "ponlo en 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "dejalo en 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "set screen to 55",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "set monitor to 55 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "cincuenta y cinco pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "cincuenta cinco pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "fifty five inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "65 inch",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "65 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "65 pulgada",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "65 pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "65 puladas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "tamaño 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "tamano 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "tamaño de 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "tamano de 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "a 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "en 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "de 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "pantalla 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "pantalla de 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "monitor 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "monitor de 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "ponlo en 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "dejalo en 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "set screen to 65",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "set monitor to 65 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "sesenta y cinco pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "sesenta cinco pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "sixty five inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "75 inch",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "75 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "75 pulgada",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "75 pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "75 puladas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "tamaño 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "tamano 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "tamaño de 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "tamano de 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "a 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "en 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "de 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "pantalla 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "pantalla de 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "monitor 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "monitor de 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "ponlo en 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "dejalo en 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "set screen to 75",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "set monitor to 75 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "setenta y cinco pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "setenta cinco pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "seventy five inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "95 inch",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "95 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "95 pulgada",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "95 pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "95 puladas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "tamaño 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "tamano 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "tamaño de 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "tamano de 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "a 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "en 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "de 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "pantalla 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "pantalla de 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "monitor 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "monitor de 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "ponlo en 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "dejalo en 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "set screen to 95",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "set monitor to 95 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "noventa y cinco pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "noventa cinco pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "ninety five inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  },
+  {
+    "text": "120 inch",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "120 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "120 pulgada",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "120 pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "120 puladas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "tamaño 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "tamano 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "tamaño de 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "tamano de 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "a 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "en 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "de 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "pantalla 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "pantalla de 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "monitor 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "monitor de 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "ponlo en 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "dejalo en 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "set screen to 120",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "set monitor to 120 inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "ciento veinte pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "cien veinte pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "one hundred twenty inches",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "pon pantalla 2 en 55",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "pon pantalla dos en 55",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "pon pantalla uno en 65",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "cambia pantalla dos a 55",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "cambia la pantalla dos a 55",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "cambia la pantalla dos a 65",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "configura monitor dos tamaño 65",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "configura monitor dos tamano 65",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "haz la pantalla de 55 pulgadas",
+    "expected": [
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "pon el monitor dos en sesenta y cinco pulgadas",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "pon el monitor uno en ciento veinte pulgadas",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "monitor uno en ciento veinte pulgadas",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 120
+      }
+    ]
+  },
+  {
+    "text": "set monitor two to 65 inches",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "make monitor one 55 inches",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "pon la pantaya dos en sesenta y cinco puladas",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "monitor dos a la derecha y en 65",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_RIGHT"
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "monitor dos, derecha, 55 pulgadas",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_RIGHT"
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "sube el tamaño",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "sube tamaño",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "sube tamano",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "súbele el tamaño",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "subele tamano",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "aumenta",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "aumenta el tamaño",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "aumenta tamano",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "hazlo más grande",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "hazlo mas grande",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "hazlo un poco más grande",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "hazlo un poco mas grande",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "agranda",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "agranda pantalla",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "agranda la pantalla",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "agranda monitor",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "agranda el monitor",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "agranda la pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "agranda el monitor uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "quiero verlo más grande",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "quiero verlo mas grande",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "ponlo más grande",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "ponlo mas grande",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "make the screen bigger",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "make monitor bigger",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "increase monitor size",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "make it bigger",
+    "expected": [
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "pantalla una hazlo mas grande",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "baja el tamaño",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "baja tamaño",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "baja tamano",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "bájale el tamaño",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "bajale tamano",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "disminuye",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "reduce",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "reduce el tamaño",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "reduce tamano",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "hazlo más pequeño",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "hazlo mas pequeno",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "hazlo un poco más pequeño",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "hazlo un poco mas pequeno",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "achica pantalla",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "achica la pantalla",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "achica monitor",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "achica el monitor",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "reduce el monitor uno",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "reduce la pantalla dos",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "quiero verlo más pequeño",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "quiero verlo mas pequeno",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "ponlo más pequeño",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "ponlo mas pequeno",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "make the screen smaller",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "reduce monitor size",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "make it smaller",
+    "expected": [
+      {
+        "command": "DECREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "zoom in",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "acercar",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "acercalo",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "acércalo",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "haz zoom",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "haz zoom en la pantalla",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "haz zoom al monitor",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "acerca la pantalla",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "acerca el monitor",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "aumenta el zoom",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "quiero verlo más cerca",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "quiero verlo mas cerca",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "zoom a la pantalla",
+    "expected": [
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "zoom out",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "alejar",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "alejalo",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "aléjalo",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "quitar zoom",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "quita zoom",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "reduce el zoom",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "aleja la pantalla",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "aleja el monitor",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "quiero verlo más lejos",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "quiero verlo mas lejos",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "zoom hacia afuera",
+    "expected": [
+      {
+        "command": "ZOOM_OUT"
+      }
+    ]
+  },
+  {
+    "text": "layout uno",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "layout 1",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "primer layout",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "primer diseño",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "diseno uno",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "diseño uno",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "vista uno",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "vista 1",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "primera vista",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 1
+      }
+    ]
+  },
+  {
+    "text": "layout dos",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "layout 2",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "segundo layout",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "segundo diseño",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "diseno dos",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "diseño dos",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "vista dos",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "vista 2",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "segunda vista",
+    "expected": [
+      {
+        "command": "SET_LAYOUT",
+        "layout": 2
+      }
+    ]
+  },
+  {
+    "text": "show aitrol",
+    "expected": [
+      {
+        "command": "SHOW_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "open aitrol",
+    "expected": [
+      {
+        "command": "SHOW_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "display aitrol",
+    "expected": [
+      {
+        "command": "SHOW_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "abre aitrol",
+    "expected": [
+      {
+        "command": "SHOW_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "abrir aitrol",
+    "expected": [
+      {
+        "command": "SHOW_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "mostrar aitrol",
+    "expected": [
+      {
+        "command": "SHOW_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "abre la app aitrol",
+    "expected": [
+      {
+        "command": "SHOW_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "close aitrol",
+    "expected": [
+      {
+        "command": "CLOSE_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "hide aitrol",
+    "expected": [
+      {
+        "command": "CLOSE_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "cerrar aitrol",
+    "expected": [
+      {
+        "command": "CLOSE_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "cierra aitrol",
+    "expected": [
+      {
+        "command": "CLOSE_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "ocultar aitrol",
+    "expected": [
+      {
+        "command": "CLOSE_AITROL"
+      }
+    ]
+  },
+  {
+    "text": "show voice commands",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "show voice command",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "open voice commands",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "open voice command panel",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "show commands",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "mostrar comandos de voz",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "abre comandos de voz",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "abre el panel de comandos",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "mostrar panel de comandos de voz",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "ayuda de voz",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "abre ayuda de voz",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "muestra la ayuda de voz",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "muéstrame los comandos",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "qué comandos puedo decir",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "abre el panel de ayuda",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "abre panel de comandos",
+    "expected": [
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "close voice commands",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "close voice command",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "hide voice commands",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "close voice command panel",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "cerrar comandos de voz",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "cierra comandos de voz",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "ocultar comandos de voz",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "cerrar panel de comandos de voz",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "cierra ayuda de voz",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "oculta ayuda de voz",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "cierra el panel de ayuda",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "cierra panel de comandos",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "quita los comandos de voz",
+    "expected": [
+      {
+        "command": "CLOSE_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "settings",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "open settings",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "show settings",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "configuration",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "ajustes",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "abrir ajustes",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "configuración",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "configuracion",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "abre configuración",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "abre configuracion",
+    "expected": [
+      {
+        "command": "OPEN_SETTINGS"
+      }
+    ]
+  },
+  {
+    "text": "abre aitrol y muestra comandos de voz",
+    "expected": [
+      {
+        "command": "SHOW_AITROL"
+      },
+      {
+        "command": "SHOW_VOICE_COMMANDS"
+      }
+    ]
+  },
+  {
+    "text": "capture",
+    "expected": [
+      {
+        "command": "CAPTURE"
+      }
+    ]
+  },
+  {
+    "text": "screenshot",
+    "expected": [
+      {
+        "command": "CAPTURE"
+      }
+    ]
+  },
+  {
+    "text": "take capture",
+    "expected": [
+      {
+        "command": "CAPTURE"
+      }
+    ]
+  },
+  {
+    "text": "take screenshot",
+    "expected": [
+      {
+        "command": "CAPTURE"
+      }
+    ]
+  },
+  {
+    "text": "captura",
+    "expected": [
+      {
+        "command": "CAPTURE"
+      }
+    ]
+  },
+  {
+    "text": "tomar captura",
+    "expected": [
+      {
+        "command": "CAPTURE"
+      }
+    ]
+  },
+  {
+    "text": "sacar captura",
+    "expected": [
+      {
+        "command": "CAPTURE"
+      }
+    ]
+  },
+  {
+    "text": "pantallazo",
+    "expected": [
+      {
+        "command": "CAPTURE"
+      }
+    ]
+  },
+  {
+    "text": "stream",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "start stream",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "start streaming",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "begin stream",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "iniciar stream",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "empezar stream",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "transmitir",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "iniciar transmisión",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "iniciar transmision",
+    "expected": [
+      {
+        "command": "START_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "record",
+    "expected": [
+      {
+        "command": "START_RECORDING"
+      }
+    ]
+  },
+  {
+    "text": "start recording",
+    "expected": [
+      {
+        "command": "START_RECORDING"
+      }
+    ]
+  },
+  {
+    "text": "begin recording",
+    "expected": [
+      {
+        "command": "START_RECORDING"
+      }
+    ]
+  },
+  {
+    "text": "recording",
+    "expected": [
+      {
+        "command": "START_RECORDING"
+      }
+    ]
+  },
+  {
+    "text": "grabar",
+    "expected": [
+      {
+        "command": "START_RECORDING"
+      }
+    ]
+  },
+  {
+    "text": "iniciar grabación",
+    "expected": [
+      {
+        "command": "START_RECORDING"
+      }
+    ]
+  },
+  {
+    "text": "iniciar grabacion",
+    "expected": [
+      {
+        "command": "START_RECORDING"
+      }
+    ]
+  },
+  {
+    "text": "empezar a grabar",
+    "expected": [
+      {
+        "command": "START_RECORDING"
+      }
+    ]
+  },
+  {
+    "text": "stop stream",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "stop streaming",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "end stream",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "stop transmission",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "detener stream",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "deten stream",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "parar stream",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "detener transmisión",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "detener transmision",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "detén stream",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "detén la transmisión",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "corta la transmisión",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "para la transmisión",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "stop broadcast",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "stop live",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      }
+    ]
+  },
+  {
+    "text": "stop",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "cancel",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "stop action",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "stop current action",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "detener",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "parar",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "cancelar",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "detener acción",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "detener accion",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "detén eso",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "para eso",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "cancela eso",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "ya para",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "detén la acción",
+    "expected": [
+      {
+        "command": "STOP_ACTIVE"
+      }
+    ]
+  },
+  {
+    "text": "stop stream y reset position",
+    "expected": [
+      {
+        "command": "STOP_STREAM"
+      },
+      {
+        "command": "RESET_POSITION"
+      }
+    ]
+  },
+  {
+    "text": "coja la pantalla una y mueve la licuada",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "MOVE_LEFT"
+      }
+    ]
+  },
+  {
+    "text": "pantalla 2 mueve la la derecha y luego las es en el tamaño de 55 puladas",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_RIGHT"
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 55
+      }
+    ]
+  },
+  {
+    "text": "monitor dos, mueve derecha, en 65",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_RIGHT"
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 65
+      }
+    ]
+  },
+  {
+    "text": "pantaya dos abajo y subele el tamano",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_DOWN"
+      },
+      {
+        "command": "INCREASE_SIZE"
+      }
+    ]
+  },
+  {
+    "text": "selecciona pantalla uno y zoom in",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "ZOOM_IN"
+      }
+    ]
+  },
+  {
+    "text": "pantalla dos entonces derecha despues en 75",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 2
+      },
+      {
+        "command": "MOVE_RIGHT"
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 75
+      }
+    ]
+  },
+  {
+    "text": "monitor uno izquierda luego tamaño 95",
+    "expected": [
+      {
+        "command": "SELECT_MONITOR",
+        "monitor": 1
+      },
+      {
+        "command": "MOVE_LEFT"
+      },
+      {
+        "command": "SET_SIZE",
+        "size_inches": 95
+      }
+    ]
+  }
+]

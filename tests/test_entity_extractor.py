@@ -33,6 +33,16 @@ def test_extract_monitor_spanish_aliases() -> None:
     assert entities["monitor"] == 2
 
 
+def test_extract_monitor_one_natural_screen_aliases() -> None:
+    assert extract_entities(normalize_text("pantalla una"))["monitor"] == 1
+    assert extract_entities(normalize_text("la pantalla una"))["monitor"] == 1
+
+
+def test_extract_monitor_two_natural_screen_aliases() -> None:
+    assert extract_entities(normalize_text("pantalla dos"))["monitor"] == 2
+    assert extract_entities(normalize_text("segunda pantalla"))["monitor"] == 2
+
+
 def test_extract_monitor_common_typo_alias() -> None:
     entities = extract_entities(normalize_text("mueve el monito uno a la derecha"))
     assert entities["monitor"] == 1
@@ -46,6 +56,11 @@ def test_extract_layout_one() -> None:
 def test_extract_layout_two_spanish() -> None:
     entities = extract_entities(normalize_text("segundo layout"))
     assert entities["layout"] == 2
+
+
+def test_extract_layout_natural_aliases() -> None:
+    assert extract_entities(normalize_text("vista dos"))["layout"] == 2
+    assert extract_entities(normalize_text("diseño uno"))["layout"] == 1
 
 
 def test_extract_supported_size_inches() -> None:
@@ -68,6 +83,55 @@ def test_extract_size_from_transcription_typo_puladas() -> None:
         normalize_text("pantalla 2 mueve la derecha y luego en el tamaño de 55 puladas")
     )
     assert entities["size_inches"] == 55
+
+
+def test_extract_size_from_spoken_spanish_55() -> None:
+    entities = extract_entities(normalize_text("ponlo en cincuenta y cinco pulgadas"))
+    assert entities["size_inches"] == 55
+
+
+def test_extract_monitor_and_size_from_natural_numeric_phrase() -> None:
+    entities = extract_entities(normalize_text("pantalla dos a 65"))
+    assert entities["monitor"] == 2
+    assert entities["size_inches"] == 65
+
+
+def test_extract_monitor_and_size_from_spoken_spanish_120() -> None:
+    entities = extract_entities(normalize_text("monitor uno en ciento veinte pulgadas"))
+    assert entities["monitor"] == 1
+    assert entities["size_inches"] == 120
+
+
+def test_extract_monitor_2_does_not_detect_size() -> None:
+    entities = extract_entities(normalize_text("monitor 2"))
+    assert entities["monitor"] == 2
+    assert entities["size_inches"] is None
+
+
+def test_extract_layout_2_does_not_detect_size() -> None:
+    entities = extract_entities(normalize_text("layout 2"))
+    assert entities["layout"] == 2
+    assert entities["size_inches"] is None
+
+
+def test_extract_size_from_screen_numeric_phrase() -> None:
+    entities = extract_entities(normalize_text("pantalla 55"))
+    assert entities["size_inches"] == 55
+
+
+def test_extract_size_from_preposition_numeric_phrase() -> None:
+    entities = extract_entities(normalize_text("a 55"))
+    assert entities["size_inches"] == 55
+
+
+def test_extract_size_from_spoken_english_55() -> None:
+    entities = extract_entities(normalize_text("fifty five inches"))
+    assert entities["size_inches"] == 55
+
+
+def test_extract_size_from_spoken_english_120() -> None:
+    entities = extract_entities(normalize_text("one hundred twenty inches"))
+    assert entities["size_inches"] == 120
 
 
 def test_extract_invalid_size_returns_none() -> None:

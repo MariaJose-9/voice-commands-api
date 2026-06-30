@@ -16,10 +16,23 @@ _PROTECTED_PHRASES = [
     "recenter objects",
     "center objects",
     "reset position",
+    "cincuenta y cinco",
+    "sesenta y cinco",
+    "setenta y cinco",
+    "noventa y cinco",
 ]
 _PROTECTED_PREFIX = "__protected_"
 _CONNECTOR_PATTERN = re.compile(
-    r"\s*(?:,|;|\band\b|\bthen\b|\bafter that\b|\by\b|\bluego\b|\bdespues\b)\s*"
+    r"\s*(?:,|;|\band\b|\bthen\b|\bafter that\b|\by\b|\bluego\b|\bdespues\b|\bdespués\b|\bentonces\b)\s*"
+)
+_FILLER_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bla\s+la\b"), "la"),
+    (re.compile(r"\bel\s+el\b"), "el"),
+    (re.compile(r"\blas\s+es\s+en\s+el\b"), "en el"),
+    (re.compile(r"\blas\s+es\s+en\b"), "en"),
+    (re.compile(r"\bpor\s+favor\b"), ""),
+    (re.compile(r"\bun\s+poquito\b"), ""),
+    (re.compile(r"\bun\s+poco\b"), ""),
 )
 _SUPPRESSION_RULES: dict[CommandName, set[CommandName]] = {
     CommandName.STOP_STREAM: {CommandName.STOP_ACTIVE},
@@ -36,7 +49,7 @@ _SUPPRESSION_RULES: dict[CommandName, set[CommandName]] = {
 def split_into_fragments(normalized_text: str) -> list[str]:
     """Split a normalized utterance into command fragments."""
 
-    protected_text = normalized_text
+    protected_text = _clean_fillers(normalized_text)
     replacements: dict[str, str] = {}
 
     for index, phrase in enumerate(sorted(_PROTECTED_PHRASES, key=len, reverse=True)):
@@ -59,6 +72,15 @@ def split_into_fragments(normalized_text: str) -> list[str]:
             fragments.append(cleaned)
 
     return fragments
+
+
+def _clean_fillers(text: str) -> str:
+    """Remove common ASR filler artifacts before command splitting."""
+
+    cleaned = text
+    for pattern, replacement in _FILLER_PATTERNS:
+        cleaned = pattern.sub(replacement, cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
 def _command_key(command: NormalizedCommand) -> tuple:

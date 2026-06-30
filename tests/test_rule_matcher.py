@@ -48,6 +48,57 @@ def test_match_set_size_from_entities() -> None:
     assert commands[0].size_inches == 95
 
 
+def test_match_increase_size_relative_phrases() -> None:
+    for text in [
+        "sube el tamaño",
+        "súbele el tamaño",
+        "hazlo más grande",
+        "hazlo un poco más grande",
+    ]:
+        commands = _match(text)
+        assert [command.command for command in commands] == [CommandName.INCREASE_SIZE]
+
+
+def test_match_decrease_size_relative_phrases() -> None:
+    for text in [
+        "bájale el tamaño",
+        "hazlo más pequeño",
+        "hazlo un poco más pequeño",
+    ]:
+        commands = _match(text)
+        assert [command.command for command in commands] == [CommandName.DECREASE_SIZE]
+
+
+def test_match_monitor_and_relative_size() -> None:
+    commands = _match("agranda la pantalla dos")
+
+    assert [command.command for command in commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.INCREASE_SIZE,
+    ]
+    assert commands[0].monitor == 2
+
+    commands = _match("reduce el monitor uno")
+    assert [command.command for command in commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.DECREASE_SIZE,
+    ]
+    assert commands[0].monitor == 1
+
+
+def test_match_set_size_suppresses_relative_size() -> None:
+    commands = _match("cambia pantalla dos a 55")
+
+    assert [command.command for command in commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.SET_SIZE,
+    ]
+    assert commands[0].monitor == 2
+    assert commands[1].size_inches == 55
+    assert CommandName.INCREASE_SIZE not in {command.command for command in commands}
+    assert CommandName.DECREASE_SIZE not in {command.command for command in commands}
+
+
 def test_match_exact_direction_command() -> None:
     commands = _match("izquierda")
 

@@ -290,3 +290,23 @@ def admin_dev_seed() -> dict[str, Any]:
             status_code=500,
             detail="Internal error while running development seed.",
         ) from exc
+
+
+@app.post("/admin/dev/publish-initial-catalog")
+def admin_dev_publish_initial_catalog() -> dict[str, Any]:
+    if ENV == "production":
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    try:
+        from app.db.publish_initial_catalog import publish_initial_catalog
+
+        return publish_initial_catalog()
+    except Exception as exc:
+        logger.exception(
+            "Failed to publish initial development catalog",
+            extra={"event": "publish_initial_catalog_error"},
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error while publishing initial catalog.",
+        ) from exc

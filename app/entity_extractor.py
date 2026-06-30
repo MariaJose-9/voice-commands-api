@@ -14,6 +14,24 @@ _STREAM_PATTERN = re.compile(
 _FOLLOW_PATTERN = re.compile(
     r"\b(?:follow\s+me|sigueme|seguirme|seguimiento)\b"
 )
+_SPOKEN_SIZE_VALUES: dict[str, int] = {
+    "cincuenta y cinco": 55,
+    "cincuenta cinco": 55,
+    "sesenta y cinco": 65,
+    "sesenta cinco": 65,
+    "setenta y cinco": 75,
+    "setenta cinco": 75,
+    "noventa y cinco": 95,
+    "noventa cinco": 95,
+    "ciento veinte": 120,
+    "cien veinte": 120,
+    "fifty five": 55,
+    "sixty five": 65,
+    "seventy five": 75,
+    "ninety five": 95,
+    "one hundred twenty": 120,
+    "one twenty": 120,
+}
 
 
 def _extract_alias_value(text: str, aliases_by_value: dict[str, list[str]]) -> int | None:
@@ -47,18 +65,56 @@ def _extract_size(text: str, aliases_by_value: dict[str, list[str]]) -> int | No
 
     sizes_group = "|".join(re.escape(str(size)) for size in valid_sizes)
     spanish_size_unit = r"(?:pulgada|pulgadas|pulada|puladas)"
+    english_size_unit = r"inch(?:es)?"
     patterns: list[Pattern[str]] = [
         re.compile(rf"\b({sizes_group})\s*inch(?:es)?\b"),
         re.compile(rf"\b({sizes_group})\s*{spanish_size_unit}\b"),
         re.compile(rf"\btamano(?:\s+de)?\s+({sizes_group})\b"),
         re.compile(rf"\bset\s+({sizes_group})\s*inch(?:es)?\b"),
-        re.compile(rf"\bponlo\s+en\s+({sizes_group})\s*{spanish_size_unit}\b"),
+        re.compile(rf"\bpon\s+.*?\ben\s+({sizes_group})(?:\s*{spanish_size_unit})?\b"),
+        re.compile(rf"\b(?:a|en|de)\s+({sizes_group})\b"),
+        re.compile(rf"\b(?:pantalla|monitor)\s+(?:de\s+)?({sizes_group})\b"),
+        re.compile(rf"\bset\s+(?:screen|monitor)(?:\s+\w+)?\s+to\s+({sizes_group})\b"),
     ]
 
     for pattern in patterns:
         match = pattern.search(text)
         if match:
             return int(match.group(1))
+
+    spoken_patterns: list[tuple[Pattern[str], int]] = []
+    for phrase, size in sorted(
+        _SPOKEN_SIZE_VALUES.items(),
+        key=lambda item: (-len(item[0]), item[0]),
+    ):
+        if size not in valid_sizes:
+            continue
+        spoken_patterns.extend(
+            [
+                (
+                    re.compile(
+                        rf"\b{re.escape(phrase)}\s*(?:{spanish_size_unit}|{english_size_unit})?\b"
+                    ),
+                    size,
+                ),
+                (
+                    re.compile(
+                        rf"\b(?:a|en|de|to)\s+{re.escape(phrase)}(?:\s*(?:{spanish_size_unit}|{english_size_unit}))?\b"
+                    ),
+                    size,
+                ),
+                (
+                    re.compile(
+                        rf"\b(?:tamano|size)(?:\s+de)?\s+{re.escape(phrase)}\b"
+                    ),
+                    size,
+                ),
+            ]
+        )
+
+    for pattern, size in spoken_patterns:
+        if pattern.search(text):
+            return size
 
     return None
 

@@ -25,11 +25,21 @@ from app.audio.transcription_service import (
 )
 from app.config import (
     ENABLE_AUDIO_TRANSCRIPTION,
+    ENABLE_SEMANTIC_MATCHER,
     TRANSCRIPTION_ENGINE,
     TRANSCRIPTION_MODEL_NAME,
 )
+from app.db.models import CatalogStatus, CatalogVersion
+from app.db.session import Session as SessionFactory, engine
 from app.normalizer import normalize_command_text
 from app.services.normalization_log_service import save_normalization_log
+from app.services.runtime_settings_service import get_bool_setting
+from app.services.settings_service import is_catalog_dirty
+
+try:
+    from sqlmodel import select
+except ImportError:  # pragma: no cover
+    select = None
 
 
 logger = logging.getLogger(__name__)
@@ -37,8 +47,35 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["audio"])
 
 
+def _catalog_runtime_status() -> tuple[Optional[int], bool]:
+    """Return active catalog version and dirty flag without making audio status fragile."""
+
+    if SessionFactory is None or engine is None or select is None:
+        return None, False
+
+    try:
+        with SessionFactory(engine) as session:
+            active_version = session.exec(
+                select(CatalogVersion)
+                .where(CatalogVersion.status == CatalogStatus.ACTIVE)
+                .order_by(CatalogVersion.version_number.desc())
+            ).first()
+            return (
+                active_version.version_number if active_version is not None else None,
+                is_catalog_dirty(session),
+            )
+    except Exception:
+        logger.warning(
+            "Audio status could not read catalog runtime status",
+            extra={"event": "audio_status_catalog_warning"},
+            exc_info=True,
+        )
+        return None, False
+
+
 def _audio_status_payload() -> AudioStatusResponse:
     settings = get_effective_transcription_settings()
+    active_version, catalog_dirty = _catalog_runtime_status()
     return AudioStatusResponse(
         enabled=bool(settings["enabled"]),
         engine=str(settings["engine"]),
@@ -49,6 +86,12 @@ def _audio_status_payload() -> AudioStatusResponse:
         allowed_extensions=list(settings["allowed_extensions"]),
         max_file_mb=int(settings["max_file_mb"]),
         max_duration_seconds=int(settings["max_duration_seconds"]),
+        semantic_matcher_enabled=get_bool_setting(
+            "ENABLE_SEMANTIC_MATCHER",
+            ENABLE_SEMANTIC_MATCHER,
+        ),
+        active_catalog_version=active_version,
+        catalog_dirty=catalog_dirty,
     )
 
 

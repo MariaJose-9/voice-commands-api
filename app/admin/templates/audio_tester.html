@@ -11,6 +11,11 @@
     </div>
     <div class="pill-row">
       <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+      {% if catalog_dirty and (current_user.role == "admin" or current_user.role.value == "admin") %}
+      <form method="post" action="/admin/catalog/publish">
+        <button class="button button-small" type="submit">Publish catalog</button>
+      </form>
+      {% endif %}
     </div>
   </div>
 
@@ -21,8 +26,13 @@
   <form method="post" enctype="multipart/form-data" class="form-stack">
     <label>
       <span>Audio File</span>
-      <input type="file" name="file" accept=".ogg,.mp3,.m4a" required>
+      <input type="file" name="file" accept=".ogg,.mp3,.m4a" data-audio-preview-input required>
     </label>
+    <div class="audio-preview" data-audio-preview hidden>
+      <span class="stat-label">Preview selected audio</span>
+      <audio controls preload="metadata" data-audio-preview-player></audio>
+      <small data-audio-preview-name></small>
+    </div>
     <label>
       <span>Language Hint</span>
       <input type="text" name="language_hint" value="{{ language_hint }}" placeholder="en or es">
@@ -46,9 +56,55 @@
       <h2>{{ transcription_result.text or "-" }}</h2>
     </div>
   </div>
+  <div class="debug-grid">
+    <div class="stat-card">
+      <span class="stat-label">Text</span>
+      <div>{{ transcription_result.text or "-" }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Detected Language</span>
+      <div>{{ transcription_result.language or "-" }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Duration</span>
+      <div>{{ transcription_result.duration_seconds if transcription_result.duration_seconds is not none else "-" }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Engine / Model</span>
+      <div>{{ transcription_result.engine }} / {{ transcription_result.model }}</div>
+    </div>
+  </div>
   <section class="subpanel">
-    <h3>Result</h3>
-    <div class="json-block">{{ transcription_result|tojson(indent=2) }}</div>
+    <h3>Segments</h3>
+    <div class="json-block">{{ transcription_result.segments|tojson(indent=2) }}</div>
+  </section>
+  <section class="subpanel">
+    <h3>Convert transcription to example</h3>
+    <form method="post" action="/admin/tester/save-example" class="form-stack compact-form stat-card">
+      <input type="hidden" name="phrase" value="{{ transcription_result.text }}">
+      <input type="hidden" name="return_to" value="audio-tester">
+      <label>
+        <span>Command</span>
+        <select name="command_id" required>
+          {% for command in commands %}
+          <option value="{{ command.id }}">{{ command.code }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span>Match Type</span>
+        <select name="match_type">
+          <option value="exact">exact</option>
+          <option value="fuzzy">fuzzy</option>
+          <option value="semantic" selected>semantic</option>
+        </select>
+      </label>
+      <label>
+        <span>Language</span>
+        <input type="text" name="language" value="{{ transcription_result.language or language_hint }}">
+      </label>
+      <button class="button button-small" type="submit">Convert transcription to example</button>
+    </form>
   </section>
 </section>
 {% endif %}
@@ -63,11 +119,89 @@
   </div>
   <section class="subpanel">
     <h3>Commands</h3>
-    <div class="json-block">{{ normalize_result.normalization.commands|tojson(indent=2) }}</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Command</th>
+          <th>Monitor</th>
+          <th>Layout</th>
+          <th>Size</th>
+          <th>Confidence</th>
+          <th>Method</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for command in normalize_result.normalization.commands %}
+        <tr>
+          <td>{{ command.command }}</td>
+          <td>{{ command.monitor if command.monitor is not none else "-" }}</td>
+          <td>{{ command.layout if command.layout is not none else "-" }}</td>
+          <td>{{ command.size_inches if command.size_inches is not none else "-" }}</td>
+          <td>{{ command.confidence }}</td>
+          <td>{{ command.method }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </section>
+  <div class="debug-grid">
+    <div class="stat-card">
+      <span class="stat-label">Needs Confirmation</span>
+      <div>{{ "yes" if normalize_result.normalization.needs_confirmation else "no" }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Normalized Text</span>
+      <div>{{ normalize_result.normalization.normalized_text }}</div>
+    </div>
+  </div>
   <section class="subpanel">
     <h3>Normalization JSON</h3>
     <div class="json-block">{{ normalize_result.normalization|tojson(indent=2) }}</div>
+  </section>
+</section>
+{% endif %}
+
+{% if debug_data %}
+<section class="panel debug-panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Pipeline Debug</p>
+      <h2>Normalizer internals</h2>
+    </div>
+  </div>
+  <div class="debug-grid">
+    <div class="stat-card">
+      <span class="stat-label">Normalized</span>
+      <div>{{ debug_data.normalized_text or "-" }}</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Fragments</span>
+      <div>{{ debug_data.fragments|join(", ") if debug_data.fragments else "-" }}</div>
+    </div>
+  </div>
+  <section class="subpanel">
+    <h3>Entities By Fragment</h3>
+    <div class="json-block">{{ debug_data.entities_by_fragment|tojson(indent=2) }}</div>
+  </section>
+  <section class="subpanel">
+    <h3>Rule Matches</h3>
+    <div class="json-block">{{ debug_data.rule_matches|tojson(indent=2) }}</div>
+  </section>
+  <section class="subpanel">
+    <h3>Fuzzy Candidates</h3>
+    <div class="json-block">{{ debug_data.fuzzy_candidates|tojson(indent=2) }}</div>
+  </section>
+  <section class="subpanel">
+    <h3>Semantic Candidates</h3>
+    <div class="json-block">{{ debug_data.semantic_candidates|tojson(indent=2) }}</div>
+  </section>
+  <section class="subpanel">
+    <h3>Test again</h3>
+    <form method="post" action="/admin/tester/run" class="compact-form">
+      <input type="hidden" name="text" value="{{ transcription_result.text if transcription_result else '' }}">
+      <input type="hidden" name="language_hint" value="{{ language_hint }}">
+      <button class="button button-secondary button-small" type="submit">Test again in text tester</button>
+    </form>
   </section>
 </section>
 {% endif %}

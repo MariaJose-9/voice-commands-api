@@ -80,8 +80,19 @@ from app.services.catalog_service import export_catalog_to_yaml_shape
 from app.schemas import CommandName, NormalizeRequest
 from app.services.debug_service import build_debug_response
 from app.services.publish_service import get_active_version, publish_catalog
-from app.services.review_service import assign_log_to_command, ignore_review_log
-from app.services.runtime_settings_service import get_audio_list_setting, get_runtime_setting
+from app.services.review_service import (
+    assign_log_to_command,
+    assign_logs_to_command,
+    ignore_review_log,
+    ignore_review_logs,
+    list_review_logs,
+)
+from app.services.runtime_settings_service import (
+    get_audio_list_setting,
+    get_bool_setting,
+    get_runtime_setting,
+    get_str_setting,
+)
 from app.services.settings_service import is_catalog_dirty, set_catalog_dirty
 
 
@@ -189,6 +200,11 @@ def _render(
 
 
 def _get_dashboard_context() -> dict[str, Any]:
+    semantic_enabled = get_bool_setting("ENABLE_SEMANTIC_MATCHER", ENABLE_SEMANTIC_MATCHER)
+    transcription_model = get_str_setting(
+        "TRANSCRIPTION_MODEL_NAME",
+        TRANSCRIPTION_MODEL_NAME,
+    )
     if SessionFactory is None or engine is None:
         return {
             "total_commands": 0,
@@ -198,7 +214,8 @@ def _get_dashboard_context() -> dict[str, Any]:
             "active_version": None,
             "catalog_dirty": False,
             "env": ENV,
-            "semantic_enabled": ENABLE_SEMANTIC_MATCHER,
+            "semantic_enabled": semantic_enabled,
+            "transcription_model": transcription_model,
         }
 
     with SessionFactory(engine) as session:
@@ -229,7 +246,8 @@ def _get_dashboard_context() -> dict[str, Any]:
         ),
         "catalog_dirty": catalog_dirty,
         "env": ENV,
-        "semantic_enabled": ENABLE_SEMANTIC_MATCHER,
+        "semantic_enabled": semantic_enabled,
+        "transcription_model": transcription_model,
     }
 
 
@@ -414,16 +432,18 @@ def _load_settings_context() -> dict[str, Any]:
     }
 
 
-def _load_review_context() -> dict[str, Any]:
+def _load_review_context(review_filter: str = "pending") -> dict[str, Any]:
     if SessionFactory is None or engine is None:
-        return {"logs": [], "commands": [], "catalog_dirty": False}
+        return {
+            "logs": [],
+            "commands": [],
+            "catalog_dirty": False,
+            "review_filter": review_filter,
+            "notice": None,
+        }
 
     with SessionFactory(engine) as session:
-        logs = session.exec(
-            select(NormalizationLog)
-            .where(NormalizationLog.review_status == ReviewStatus.PENDING)
-            .order_by(NormalizationLog.created_at.desc())
-        ).all()
+        logs = list_review_logs(session, review_filter=review_filter)
         commands = session.exec(
             select(CommandDefinition)
             .where(CommandDefinition.enabled.is_(True))
@@ -431,7 +451,13 @@ def _load_review_context() -> dict[str, Any]:
         ).all()
         dirty = is_catalog_dirty(session)
 
-    return {"logs": logs, "commands": commands, "catalog_dirty": dirty}
+    return {
+        "logs": logs,
+        "commands": commands,
+        "catalog_dirty": dirty,
+        "review_filter": review_filter,
+        "notice": None,
+    }
 
 
 def _load_audio_logs_context() -> dict[str, Any]:
@@ -481,9 +507,11 @@ def _load_audio_tester_context() -> dict[str, Any]:
             catalog_dirty = is_catalog_dirty(session)
 
     return {
+        "commands": _load_enabled_commands(),
         "catalog_dirty": catalog_dirty,
         "transcription_result": None,
         "normalize_result": None,
+        "debug_data": None,
         "language_hint": "",
         "context_json": "",
         "error": None,
@@ -1088,7 +1116,8 @@ def admin_review_page(request: Request) -> HTMLResponse:
     if current_user is False:
         return _forbidden_response()
 
-    context = _load_review_context()
+    review_filter = str(request.query_params.get("filter") or "pending")
+    context = _load_review_context(review_filter=review_filter)
     context["current_user"] = current_user
     return _render(request, "review.html", context)
 
@@ -1229,6 +1258,15 @@ async def admin_audio_tester_normalize(request: Request) -> HTMLResponse:
             context_json=context_json,
         ).model_dump(mode="json")
         context["transcription_result"] = context["normalize_result"]["transcription"]
+        transcription_text = str(context["transcription_result"].get("text") or "")
+        context["debug_data"] = build_debug_response(
+            NormalizeRequest(
+                text=transcription_text,
+                language_hint=language_hint
+                or context["transcription_result"].get("language"),
+                context=None,
+            )
+        )
         return _render(request, "audio_tester.html", context)
     except Exception as exc:
         context["error"] = str(exc)
@@ -1247,13 +1285,15 @@ async def admin_tester_save_example(request: Request):
         return RedirectResponse(url="/admin/tester", status_code=status.HTTP_303_SEE_OTHER)
 
     form = await request.form()
+    return_to = str(form.get("return_to") or "").strip()
+    redirect_url = "/admin/audio-tester" if return_to == "audio-tester" else "/admin/tester"
     phrase = str(form.get("phrase") or "").strip()
     if not phrase:
-        return RedirectResponse(url="/admin/tester", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
     command_id_raw = form.get("command_id")
     if command_id_raw is None:
-        return RedirectResponse(url="/admin/tester", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
     command_id = int(command_id_raw)
     normalized_phrase = normalize_text(phrase)
@@ -1263,7 +1303,7 @@ async def admin_tester_save_example(request: Request):
     with SessionFactory(engine) as session:
         command = session.get(CommandDefinition, command_id)
         if command is None:
-            return RedirectResponse(url="/admin/tester", status_code=status.HTTP_303_SEE_OTHER)
+            return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
         duplicate = session.exec(
             select(CommandExample).where(
@@ -1293,7 +1333,7 @@ async def admin_tester_save_example(request: Request):
                 payload={"command_id": command_id, "phrase": phrase},
             )
 
-    return RedirectResponse(url="/admin/tester", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/admin/review/{log_id}/assign")
@@ -1340,6 +1380,46 @@ async def admin_review_ignore(
 
     with SessionFactory(engine) as session:
         ignore_review_log(session, log_id=log_id)
+
+    return RedirectResponse(url="/admin/review", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/admin/review/bulk")
+async def admin_review_bulk(
+    request: Request,
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.EDITOR)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return RedirectResponse(url="/admin/review", status_code=status.HTTP_303_SEE_OTHER)
+
+    form = await request.form()
+    log_ids = [
+        int(value)
+        for value in form.getlist("log_ids")
+        if str(value).isdigit()
+    ]
+    action = str(form.get("bulk_action") or "").strip()
+    if not log_ids:
+        return RedirectResponse(url="/admin/review", status_code=status.HTTP_303_SEE_OTHER)
+
+    with SessionFactory(engine) as session:
+        if action == "ignore":
+            ignore_review_logs(session, log_ids=log_ids)
+        elif action == "convert":
+            command_id_raw = form.get("command_id")
+            if command_id_raw is not None and str(command_id_raw).isdigit():
+                assign_logs_to_command(
+                    session,
+                    log_ids=log_ids,
+                    command_id=int(command_id_raw),
+                    match_type=str(form.get("match_type") or "semantic"),
+                    language=str(form.get("language") or "").strip() or None,
+                )
 
     return RedirectResponse(url="/admin/review", status_code=status.HTTP_303_SEE_OTHER)
 

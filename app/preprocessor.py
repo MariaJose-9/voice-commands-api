@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 import unicodedata
 
+from app.asr_corrections import apply_asr_corrections
+
 
 _QUOTE_TRANSLATION = str.maketrans(
     {
@@ -19,7 +21,7 @@ _QUOTE_TRANSLATION = str.maketrans(
     }
 )
 
-_NON_ALNUM_PATTERN = re.compile(r"[^a-z0-9\s]+")
+_NON_ALNUM_PATTERN = re.compile(r"[^a-z0-9\s,;]+")
 _SPACES_PATTERN = re.compile(r"\s+")
 
 
@@ -40,6 +42,7 @@ def normalize_text(text: str) -> str:
 
     normalized = text.translate(_QUOTE_TRANSLATION).lower()
     normalized = _strip_accents(normalized)
+    normalized = apply_asr_corrections(normalized)
     normalized = normalized.replace("#", " ")
     normalized = _NON_ALNUM_PATTERN.sub(" ", normalized)
     normalized = _SPACES_PATTERN.sub(" ", normalized).strip()

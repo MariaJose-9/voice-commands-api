@@ -77,6 +77,9 @@ def test_audio_status_response_model_dump() -> None:
         allowed_extensions=[".ogg", ".mp3"],
         max_file_mb=10,
         max_duration_seconds=30,
+        semantic_matcher_enabled=True,
+        active_catalog_version=1,
+        catalog_dirty=False,
     )
 
     dumped = response.model_dump()
@@ -84,3 +87,5 @@ def test_audio_status_response_model_dump() -> None:
     assert dumped["engine"] == "faster_whisper"
     assert dumped["allowed_extensions"] == [".ogg", ".mp3"]
     assert dumped["max_file_mb"] == 10
+    assert dumped["semantic_matcher_enabled"] is True
+    assert dumped["active_catalog_version"] == 1

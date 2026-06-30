@@ -175,6 +175,31 @@ input {
   margin-top: 1rem;
 }
 
+.notice {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #facc15;
+  border-radius: 12px;
+  background: #fef9c3;
+  color: #713f12;
+  font-weight: 700;
+}
+
+.filter-row,
+.bulk-actions {
+  margin: 1rem 0;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bulk-actions .inline-form {
+  grid-template-columns: 1fr 1.5fr 0.8fr 0.8fr auto;
+}
+
 .inline-delete {
   margin: 0.75rem 0;
 }
@@ -196,6 +221,19 @@ input {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.audio-preview {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px dashed #94a3b8;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.audio-preview audio {
+  width: 100%;
 }
 
 select {

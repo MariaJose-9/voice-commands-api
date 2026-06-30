@@ -40,6 +40,16 @@ def test_audio_status_endpoint_uses_runtime_effective_values(monkeypatch: pytest
         },
     )
     monkeypatch.setattr(audio_router_module, "is_transcription_model_loaded", lambda: True)
+    monkeypatch.setattr(
+        audio_router_module,
+        "_catalog_runtime_status",
+        lambda: (3, True),
+    )
+    monkeypatch.setattr(
+        audio_router_module,
+        "get_bool_setting",
+        lambda key, default: True,
+    )
 
     response = client.get("/v1/audio/status")
 
@@ -48,6 +58,9 @@ def test_audio_status_endpoint_uses_runtime_effective_values(monkeypatch: pytest
     assert payload["model"] == "tiny"
     assert payload["allowed_extensions"] == [".ogg"]
     assert payload["max_file_mb"] == 7
+    assert payload["semantic_matcher_enabled"] is True
+    assert payload["active_catalog_version"] == 3
+    assert payload["catalog_dirty"] is True
 
 
 def test_openapi_contains_audio_routes() -> None:

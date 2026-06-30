@@ -52,6 +52,31 @@ def test_seed_commands_from_yaml(sqlite_session: Session) -> None:
     assert len(examples) > 0
 
 
+def test_seed_commands_from_yaml_loads_coverage_pack(sqlite_session: Session) -> None:
+    seed_commands_from_yaml(sqlite_session)
+
+    examples = sqlite_session.exec(select(CommandExample)).all()
+    phrases = {example.phrase for example in examples}
+
+    assert len(examples) > 350
+    assert "hazlo un poco mas grande" in phrases
+    assert "pon pantalla 2 en 55" in phrases
+
+
+def test_seed_commands_from_yaml_is_idempotent(sqlite_session: Session) -> None:
+    seed_commands_from_yaml(sqlite_session)
+    first_examples = sqlite_session.exec(select(CommandExample)).all()
+
+    seed_commands_from_yaml(sqlite_session)
+    second_examples = sqlite_session.exec(select(CommandExample)).all()
+    unique_examples = {
+        (example.command_id, example.normalized_phrase) for example in second_examples
+    }
+
+    assert len(second_examples) == len(first_examples)
+    assert len(second_examples) == len(unique_examples)
+
+
 def test_seed_default_entities(sqlite_session: Session) -> None:
     result = seed_default_entities(sqlite_session)
     assert result["entity_types"] == 3
@@ -60,10 +85,38 @@ def test_seed_default_entities(sqlite_session: Session) -> None:
     assert sqlite_session.exec(select(EntityValueAlias)).all()
 
 
+def test_seed_default_entities_loads_coverage_aliases(sqlite_session: Session) -> None:
+    seed_default_entities(sqlite_session)
+
+    aliases = sqlite_session.exec(select(EntityValueAlias)).all()
+    phrases = {alias.phrase for alias in aliases}
+
+    assert "pantalla una" in phrases
+    assert "cincuenta y cinco pulgadas" in phrases
+
+
 def test_seed_default_settings(sqlite_session: Session) -> None:
     result = seed_default_settings(sqlite_session)
     assert result["settings_created"] > 0
-    assert sqlite_session.exec(select(AppSetting)).all()
+    settings = {
+        setting.key: setting.value for setting in sqlite_session.exec(select(AppSetting)).all()
+    }
+    assert settings["ENABLE_SEMANTIC_MATCHER"] == "true"
+    assert settings["FUZZY_THRESHOLD"] == "86"
+    assert settings["TRANSCRIPTION_MODEL_NAME"] == "base"
+
+
+def test_seed_default_settings_does_not_overwrite_existing(sqlite_session: Session) -> None:
+    sqlite_session.add(AppSetting(key="FUZZY_THRESHOLD", value="91"))
+    sqlite_session.commit()
+
+    seed_default_settings(sqlite_session)
+
+    setting = sqlite_session.exec(
+        select(AppSetting).where(AppSetting.key == "FUZZY_THRESHOLD")
+    ).first()
+    assert setting is not None
+    assert setting.value == "91"
 
 
 def test_seed_default_admin_user(sqlite_session: Session) -> None:

@@ -109,6 +109,9 @@ def test_publish_catalog_creates_active_version_and_archives_previous(monkeypatc
         assert versions[0].status == CatalogStatus.ARCHIVED
         assert versions[1].status == CatalogStatus.ACTIVE
         assert versions[1].created_by == 7
+        active_version = publish_service.get_active_version(session)
+        assert active_version is not None
+        assert active_version.version_number == 2
         assert versions[1].snapshot_json["version_number"] == 2
         assert "commands" in versions[1].snapshot_json
         assert "entities" in versions[1].snapshot_json

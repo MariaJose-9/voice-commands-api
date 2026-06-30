@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 import app.main as main_module
+import app.db.publish_initial_catalog as publish_initial_module
 import app.db.seed as seed_module
 import app.db.session as session_module
 import app.db.models as db_models
@@ -300,6 +301,40 @@ def test_admin_dev_seed_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_admin_dev_seed_hidden_in_production(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(main_module, "ENV", "production")
     response = client.post("/admin/dev/seed")
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
+
+
+def test_admin_dev_publish_initial_catalog_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(main_module, "ENV", "development")
+    monkeypatch.setattr(
+        publish_initial_module,
+        "publish_initial_catalog",
+        lambda: {
+            "published": True,
+            "version_number": 1,
+            "commands": 25,
+            "examples": 383,
+            "semantic_rebuilt": False,
+        },
+    )
+
+    response = client.post("/admin/dev/publish-initial-catalog")
+    assert response.status_code == 200
+    assert response.json() == {
+        "published": True,
+        "version_number": 1,
+        "commands": 25,
+        "examples": 383,
+        "semantic_rebuilt": False,
+    }
+
+
+def test_admin_dev_publish_initial_catalog_hidden_in_production(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(main_module, "ENV", "production")
+    response = client.post("/admin/dev/publish-initial-catalog")
     assert response.status_code == 404
     assert response.json() == {"detail": "Not Found"}
 

@@ -6,6 +6,26 @@ from app.normalizer import normalize_command_text
 from app.schemas import CommandName
 
 
+def _disable_optional_matchers(monkeypatch) -> None:
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_bool_setting",
+        lambda key, default: False
+        if key in {"ENABLE_SEMANTIC_MATCHER", "ENABLE_OLLAMA_FALLBACK"}
+        else default,
+    )
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_float_setting",
+        lambda key, default: default,
+    )
+    monkeypatch.setattr(
+        normalizer_module.runtime_settings_service,
+        "get_int_setting",
+        lambda key, default: default,
+    )
+
+
 def _assert_single_command(
     text: str,
     command_name: CommandName,
@@ -183,6 +203,46 @@ def test_normalize_monitor_and_absolute_size_with_joined_unit() -> None:
     assert response.commands[1].size_inches == 55
 
 
+def test_normalize_screen_numeric_size_phrase() -> None:
+    response = normalize_command_text("pon pantalla 2 en 55")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[1].size_inches == 55
+
+
+def test_normalize_screen_two_to_65_phrase() -> None:
+    response = normalize_command_text("cambia la pantalla dos a 65")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[1].size_inches == 65
+
+
+def test_normalize_monitor_two_spoken_spanish_size() -> None:
+    response = normalize_command_text("pon el monitor dos en sesenta y cinco pulgadas")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[1].size_inches == 65
+
+
+def test_normalize_screen_one_spoken_spanish_120_size() -> None:
+    response = normalize_command_text("cambia pantalla uno a ciento veinte pulgadas")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 1
+    assert response.commands[1].size_inches == 120
+
+
 def test_normalize_audio_transcription_size_typo_sequence() -> None:
     response = normalize_command_text(
         "pantalla 2 mueve la la derecha y luego las es en el tamaño de 55 puladas",
@@ -196,6 +256,134 @@ def test_normalize_audio_transcription_size_typo_sequence() -> None:
     assert response.commands[0].monitor == 2
     assert response.commands[2].size_inches == 55
     assert response.needs_confirmation is False
+
+
+def test_normalize_long_voice_phrase_with_asr_noise() -> None:
+    response = normalize_command_text(
+        "pantalla 2 mueve la la derecha y luego las es en el tamaño de 55 puladas",
+        language_hint="es",
+    )
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.MOVE_RIGHT,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[2].size_inches == 55
+
+
+def test_normalize_asr_correction_with_left_phrase() -> None:
+    response = normalize_command_text("coja la pantalla una y mueve la licuada")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.MOVE_LEFT,
+    ]
+    assert response.commands[0].monitor == 1
+
+
+def test_normalize_monitor_direction_and_size_fragments() -> None:
+    response = normalize_command_text("monitor dos a la derecha y en 65")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.MOVE_RIGHT,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[2].size_inches == 65
+
+
+def test_normalize_monitor_down_and_increase_size() -> None:
+    response = normalize_command_text("pantalla uno abajo y hazlo más grande")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.MOVE_DOWN,
+        CommandName.INCREASE_SIZE,
+    ]
+    assert response.commands[0].monitor == 1
+
+
+def test_normalize_comma_separated_monitor_direction_size() -> None:
+    response = normalize_command_text("monitor dos, derecha, 55 pulgadas")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.MOVE_RIGHT,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[2].size_inches == 55
+
+
+def test_normalize_open_aitrol_and_show_voice_commands() -> None:
+    response = normalize_command_text("abre aitrol y muestra comandos de voz")
+    assert [command.command for command in response.commands] == [
+        CommandName.SHOW_AITROL,
+        CommandName.SHOW_VOICE_COMMANDS,
+    ]
+
+
+def test_normalize_stop_stream_and_reset_position() -> None:
+    response = normalize_command_text("stop stream y reset position")
+    assert [command.command for command in response.commands] == [
+        CommandName.STOP_STREAM,
+        CommandName.RESET_POSITION,
+    ]
+
+
+def test_normalize_production_select_monitor_phrase(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+    clear_fuzzy_cache()
+    response = normalize_command_text("selecciona la pantalla dos")
+    assert [command.command for command in response.commands] == [CommandName.SELECT_MONITOR]
+    assert response.commands[0].monitor == 2
+
+
+def test_normalize_production_move_left_phrase(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+    clear_fuzzy_cache()
+    response = normalize_command_text("mueve la pantalla a la izquierda")
+    assert [command.command for command in response.commands] == [CommandName.MOVE_LEFT]
+
+
+def test_normalize_production_increase_size_phrase(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+    clear_fuzzy_cache()
+    response = normalize_command_text("sube el tamaño")
+    assert [command.command for command in response.commands] == [CommandName.INCREASE_SIZE]
+
+
+def test_normalize_production_decrease_size_phrase(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+    clear_fuzzy_cache()
+    response = normalize_command_text("bájale el tamaño")
+    assert [command.command for command in response.commands] == [CommandName.DECREASE_SIZE]
+
+
+def test_normalize_production_set_size_phrase(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+    clear_fuzzy_cache()
+    response = normalize_command_text("configura monitor dos tamaño 65")
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[1].size_inches == 65
+
+
+def test_normalize_production_voice_commands_phrase(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+    clear_fuzzy_cache()
+    response = normalize_command_text("qué comandos puedo decir")
+    assert [command.command for command in response.commands] == [
+        CommandName.SHOW_VOICE_COMMANDS
+    ]
+
+
+def test_normalize_production_stop_stream_phrase(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+    clear_fuzzy_cache()
+    response = normalize_command_text("detén stream")
+    assert [command.command for command in response.commands] == [CommandName.STOP_STREAM]
 
 
 def test_normalize_unknown_returns_confirmation(monkeypatch) -> None:

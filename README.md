@@ -81,6 +81,7 @@ Esto hace:
 * levanta `mysql:8.0`
 * ejecuta `alembic upgrade head`
 * corre el seed inicial con `python -m app.db.seed`
+* publica el catálogo inicial con `python -m app.db.publish_initial_catalog`
 * inicia la API en `http://localhost:8000`
 * expone MySQL al host en `3307`, para no chocar con un MySQL local en `3306`
 * usa una imagen de desarrollo más liviana sin `sentence-transformers`, porque `ENABLE_SEMANTIC_MATCHER=false`
@@ -148,6 +149,165 @@ Respuesta esperada:
 
 ---
 
+## Real Testing Guide
+
+Esta guía es el flujo recomendado para una prueba real con doctores o técnicos, incluyendo texto, audio, panel admin y publicación del catálogo.
+
+### 1. Setup local
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+alembic upgrade head
+python -m app.db.seed
+python -m app.db.publish_initial_catalog
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+El comando `python -m app.db.publish_initial_catalog` es importante: crea la primera versión activa del catálogo. Si no se ejecuta, el panel puede mostrar `Active Version: none`.
+
+### 2. Setup Docker
+
+```bash
+docker compose up --build
+```
+
+El compose ejecuta migraciones, seed, publicación inicial del catálogo y arranca la API con MySQL.
+
+### 3. Verificar salud
+
+```bash
+curl http://localhost:8000/health
+curl http://localhost:8000/health/db
+curl http://localhost:8000/v1/audio/status
+```
+
+En `/v1/audio/status` revisa:
+
+* `model`: modelo actual de transcripción.
+* `semantic_matcher_enabled`: si semantic matcher está activo.
+* `active_catalog_version`: debe tener un número publicado.
+* `catalog_dirty`: debe ser `false` si no hay cambios pendientes.
+
+### 4. Probar comando de texto
+
+```bash
+curl -X POST http://localhost:8000/v1/commands/normalize \
+  -H "Content-Type: application/json" \
+  -d '{"text":"pantalla 2 mueve la la derecha y luego las es en el tamaño de 55 puladas","language_hint":"es"}'
+```
+
+Respuesta esperada a alto nivel:
+
+```text
+SELECT_MONITOR monitor=2
+MOVE_RIGHT
+SET_SIZE size_inches=55
+```
+
+### 5. Probar audio
+
+```bash
+curl -X POST http://localhost:8000/v1/audio/normalize \
+  -F "file=@sample.mp3" \
+  -F "language_hint=es"
+```
+
+El endpoint transcribe el audio y luego ejecuta el normalizer sobre el texto transcrito.
+
+### 6. Panel admin
+
+```text
+http://localhost:8000/admin
+```
+
+Credenciales default:
+
+```text
+admin@example.com
+admin123
+```
+
+Cambia estas credenciales antes de cualquier exposición real.
+
+### 7. Flujo para mejorar frases reales
+
+1. Revisar `/admin/review`.
+2. Convertir una frase fallida o ambigua a example.
+3. Probar la frase en `/admin/tester` o `/admin/audio-tester`.
+4. Publicar catálogo desde el panel admin.
+5. Volver a probar la frase.
+
+Después de convertir frases a examples, el panel muestra cambios pendientes. Esos cambios no quedan activos en runtime hasta publicar el catálogo.
+
+### 8. Configuración recomendada para prueba real
+
+```bash
+ENABLE_SEMANTIC_MATCHER=true
+TRANSCRIPTION_MODEL_NAME=base
+TRANSCRIPTION_COMPUTE_TYPE=int8
+FUZZY_THRESHOLD=86
+SEMANTIC_THRESHOLD=0.72
+SEMANTIC_CONFIRMATION_THRESHOLD=0.62
+```
+
+### 9. Configuración para desarrollo rápido
+
+```bash
+ENABLE_SEMANTIC_MATCHER=false
+TRANSCRIPTION_MODEL_NAME=tiny
+FUZZY_THRESHOLD=88
+```
+
+### 10. Notas operativas
+
+* `tiny` es rápido, pero se equivoca más al transcribir.
+* `base` es el recomendado inicial para pruebas con doctores.
+* `small` puede mejorar precisión si la máquina tiene suficiente CPU/RAM.
+* El audio no se guarda; solo se usa temporalmente y se borra después de procesarlo.
+* Si `ENABLE_AUDIO_TRANSCRIPTION_LOGS=true`, sí se guardan logs de transcripción con metadata y texto transcrito, pero no el archivo de audio.
+* El catálogo debe estar publicado para que el panel muestre una versión activa y para activar cambios hechos desde admin.
+
+### Critical Test Phrases
+
+Estas frases deben funcionar antes de una prueba real:
+
+```text
+pon pantalla 2 en 55
+pantalla 2 mueve la la derecha y luego las es en el tamaño de 55 puladas
+coja la pantalla una y mueve la licuada
+hazlo un poco más grande
+bájale el tamaño
+pon el monitor dos en sesenta y cinco pulgadas
+cambia pantalla uno a ciento veinte pulgadas
+abre comandos de voz
+detén stream
+```
+
+También están cubiertas por tests E2E:
+
+```bash
+pytest tests/test_e2e_critical_commands.py
+pytest tests/test_e2e_audio_normalize.py
+```
+
+### Production Checklist
+
+Antes de una prueba real o despliegue:
+
+* MySQL operativo.
+* `alembic upgrade head` ejecutado.
+* `python -m app.db.seed` ejecutado.
+* `python -m app.db.publish_initial_catalog` ejecutado.
+* `Active Version` visible en admin.
+* `ENABLE_SEMANTIC_MATCHER=true` configurado si se requiere prueba real flexible.
+* `/v1/audio/status` responde con modelo y límites correctos.
+* Modelo `base` descargado o `POST /v1/audio/warmup` ejecutado.
+* `pytest` pasando.
+* `python scripts/nlu_coverage_report.py --fixture tests/fixtures/production_natural_phrases.json --min-coverage 95` pasando.
+
+---
+
 ## Variables de entorno
 
 Puedes crear un archivo `.env` o definir las variables directamente en la terminal.
@@ -192,6 +352,8 @@ DATABASE_URL=mysql+pymysql://voice_user:voice_password@mysql:3306/voice_command_
 ENV=development
 ALLOWED_ORIGINS=*
 ENABLE_SEMANTIC_MATCHER=false
+TRANSCRIPTION_MODEL_NAME=tiny
+FUZZY_THRESHOLD=88
 ```
 
 Para producción:
@@ -211,6 +373,37 @@ MAX_TEXT_LENGTH=500
 Nota:
 
 La primera llamada que use el matcher semántico puede demorar porque `sentence-transformers` puede descargar el modelo en el primer uso.
+
+---
+
+## Recommended settings for real doctor testing
+
+Para pruebas reales con doctores, usa un perfil más preciso que el perfil rápido de Docker desarrollo:
+
+```bash
+ENABLE_SEMANTIC_MATCHER=true
+TRANSCRIPTION_MODEL_NAME=base
+TRANSCRIPTION_COMPUTE_TYPE=int8
+FUZZY_THRESHOLD=86
+SEMANTIC_THRESHOLD=0.72
+SEMANTIC_CONFIRMATION_THRESHOLD=0.62
+MAX_AUDIO_DURATION_SECONDS=30
+```
+
+Si la máquina tiene CPU/RAM suficiente, puedes probar:
+
+```bash
+TRANSCRIPTION_MODEL_NAME=small
+```
+
+Notas prácticas:
+
+* `tiny` es rápido y útil para desarrollo, pero comete más errores de transcripción.
+* `base` es el recomendado inicial para prueba real porque mejora precisión sin ser demasiado pesado.
+* `small` mejora precisión, pero consume más recursos y tarda más en cargar.
+* `ENABLE_SEMANTIC_MATCHER=true` ayuda con frases naturales no vistas en reglas o fuzzy matching.
+* Las reglas exactas y entidades siguen teniendo prioridad sobre fuzzy y semantic matcher; por ejemplo, `pantalla dos en 55` debe resolverse por entidad/regla antes que por embeddings.
+* Revisa el estado efectivo con `GET /v1/audio/status`; devuelve modelo actual de transcripción, estado del semantic matcher, versión activa de catálogo y si hay cambios pendientes por publicar.
 
 ---
 
@@ -261,6 +454,13 @@ POST /v1/audio/normalize
 ```bash
 curl http://localhost:8000/v1/audio/status
 ```
+
+Campos relevantes:
+
+* `model`: modelo efectivo de transcripción (`tiny`, `base`, `small`, etc.).
+* `semantic_matcher_enabled`: indica si el semantic matcher está activo.
+* `active_catalog_version`: versión activa publicada del catálogo, o `null` si todavía no se publicó.
+* `catalog_dirty`: `true` si hay cambios pendientes de publicar desde el panel admin.
 
 ### Ejemplo `transcribe`
 
@@ -561,6 +761,14 @@ python -m app.db.seed
 ```
 
 Esto importa desde `app/commands/catalog.yml` hacia MySQL.
+
+Para crear la primera versión activa del catálogo y evitar `Active Version: none` en el panel admin:
+
+```bash
+python -m app.db.publish_initial_catalog
+```
+
+Ese comando usa el catálogo sembrado en MySQL, crea una `CatalogVersion` activa, marca `CATALOG_DIRTY=false`, limpia cachés y reconstruye índices runtime si el semantic matcher está habilitado.
 
 ---
 
@@ -1218,6 +1426,36 @@ Ejecutar un test específico:
 pytest tests/test_normalizer.py -v
 ```
 
+Generar un reporte de cobertura NLU con frases críticas:
+
+```bash
+python scripts/nlu_coverage_report.py
+```
+
+Por defecto el reporte desactiva semantic matcher para evitar descargas de modelo durante diagnóstico local. Para incluir embeddings:
+
+```bash
+python scripts/nlu_coverage_report.py --semantic
+```
+
+## Production NLU coverage report
+
+Ejecutar el reporte contra el fixture de frases naturales de producción:
+
+```bash
+python scripts/nlu_coverage_report.py --fixture tests/fixtures/production_natural_phrases.json
+```
+
+Exigir una cobertura mínima y fallar con código `1` si no se cumple:
+
+```bash
+python scripts/nlu_coverage_report.py \
+  --fixture tests/fixtures/production_natural_phrases.json \
+  --min-coverage 95
+```
+
+El reporte muestra total de frases, passed, failed, coverage, fallos por comando esperado, frases con `UNKNOWN`, frases con `needs_confirmation=true`, entidades faltantes y los 20 fallos más críticos.
+
 ---
 
 # Docker
@@ -1343,8 +1581,8 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 
 # Notas
 
-* El API no recibe audio.
-* El API recibe texto ya transcrito.
+* El API recibe texto ya transcrito y también puede recibir audio en `/v1/audio/transcribe` y `/v1/audio/normalize`.
+* El audio no se guarda como archivo permanente.
 * El idioma puede enviarse en `language_hint`, pero no es obligatorio.
 * Los comandos internos deben mantenerse estables.
 * Las frases de usuario se amplían en `catalog.yml`.

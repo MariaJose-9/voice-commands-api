@@ -52,6 +52,21 @@ def test_split_into_fragments_preserves_protected_phrases() -> None:
     assert fragments == ["stop stream", "reset position"]
 
 
+def test_split_into_fragments_handles_spanish_then_and_fillers() -> None:
+    fragments = split_into_fragments(
+        "pantalla 2 mueve la la derecha y luego las es en el tamano de 55 pulgadas"
+    )
+    assert fragments == [
+        "pantalla 2 mueve la derecha",
+        "en el tamano de 55 pulgadas",
+    ]
+
+
+def test_split_into_fragments_handles_entonces_connector() -> None:
+    fragments = split_into_fragments("monitor dos entonces derecha despues en 65")
+    assert fragments == ["monitor dos", "derecha", "en 65"]
+
+
 def test_deduplicate_commands_removes_exact_duplicates() -> None:
     commands = [
         _command(CommandName.SELECT_MONITOR, monitor=1),

@@ -25,9 +25,17 @@ _SPECIAL_RULES: list[tuple[CommandName, list[str]]] = [
         [
             "stop stream",
             "stop streaming",
+            "end stream",
+            "stop transmission",
+            "stop broadcast",
+            "stop live",
             "detener stream",
+            "deten stream",
             "parar stream",
             "detener transmision",
+            "deten la transmision",
+            "corta la transmision",
+            "para la transmision",
         ],
     ),
 ]
@@ -41,24 +49,51 @@ _EXACT_RULES: list[tuple[CommandName, list[str]]] = [
     (CommandName.MOVE_RIGHT, ["right", "derecha"]),
     (CommandName.MOVE_UP, ["up", "arriba"]),
     (CommandName.MOVE_DOWN, ["down", "abajo"]),
-    (CommandName.ZOOM_IN, ["zoom in", "acercar", "haz zoom"]),
-    (CommandName.ZOOM_OUT, ["zoom out", "alejar", "quitar zoom"]),
-    (CommandName.INCREASE_SIZE, ["increase", "aumenta", "agranda"]),
-    (CommandName.DECREASE_SIZE, ["decrease", "disminuye", "reduce"]),
+    (
+        CommandName.ZOOM_IN,
+        ["zoom in", "acercar", "haz zoom", "aumenta el zoom"],
+    ),
+    (
+        CommandName.ZOOM_OUT,
+        ["zoom out", "alejar", "quitar zoom", "quita zoom", "reduce el zoom"],
+    ),
     (CommandName.FOLLOW_ME, ["follow me", "sigueme", "que me siga"]),
     (
         CommandName.RESET_POSITION,
         ["reset position", "restaurar posicion", "posicion inicial"],
     ),
-    (CommandName.SHOW_AITROL, ["show aitrol", "open aitrol", "mostrar aitrol", "abre aitrol"]),
+    (
+        CommandName.SHOW_AITROL,
+        ["show aitrol", "open aitrol", "mostrar aitrol", "abre aitrol", "abrir aitrol"],
+    ),
     (CommandName.CLOSE_AITROL, ["close aitrol", "cerrar aitrol", "cierra aitrol"]),
     (
         CommandName.SHOW_VOICE_COMMANDS,
-        ["show voice commands", "show voice command", "mostrar comandos de voz"],
+        [
+            "show voice commands",
+            "show voice command",
+            "mostrar comandos de voz",
+            "ayuda de voz",
+            "abre ayuda de voz",
+            "muestra la ayuda de voz",
+            "muestrame los comandos",
+            "que comandos puedo decir",
+            "abre el panel de ayuda",
+            "abre panel de comandos",
+        ],
     ),
     (
         CommandName.CLOSE_VOICE_COMMANDS,
-        ["close voice commands", "close voice command", "cerrar comandos de voz"],
+        [
+            "close voice commands",
+            "close voice command",
+            "cerrar comandos de voz",
+            "cierra ayuda de voz",
+            "oculta ayuda de voz",
+            "cierra el panel de ayuda",
+            "cierra panel de comandos",
+            "quita los comandos de voz",
+        ],
     ),
     (
         CommandName.OPEN_SETTINGS,
@@ -71,6 +106,64 @@ _EXACT_RULES: list[tuple[CommandName, list[str]]] = [
         ["record", "start recording", "grabar", "iniciar grabacion"],
     ),
     (CommandName.STOP_ACTIVE, ["stop", "detener", "parar", "cancelar"]),
+]
+
+_PRE_RELATIVE_RULES: list[tuple[CommandName, list[str]]] = [
+    (
+        CommandName.ZOOM_IN,
+        ["zoom in", "acercar", "haz zoom", "aumenta el zoom"],
+    ),
+    (
+        CommandName.ZOOM_OUT,
+        ["zoom out", "alejar", "quitar zoom", "quita zoom", "reduce el zoom"],
+    ),
+]
+
+_RELATIVE_SIZE_RULES: list[tuple[CommandName, list[str]]] = [
+    (
+        CommandName.INCREASE_SIZE,
+        [
+            r"\bsube(?:\s+el)?\s+tamano\b",
+            r"\bsube\s+tamaño\b",
+            r"\bsubele(?:\s+el)?\s+tamano\b",
+            r"\baumenta\b",
+            r"\bagranda\b",
+            r"\baumenta(?:\s+el)?\s+tamano\b",
+            r"\baumenta\s+tamaño\b",
+            r"\bhazlo\s+(?:un\s+poco\s+)?mas\s+grande\b",
+            r"\bagranda\s+(?:la\s+pantalla|el\s+monitor)\b",
+            r"\bagranda\s+(?:la\s+pantalla|el\s+monitor)\s+(?:uno|dos|1|2)\b",
+            r"\bquiero\s+verlo\s+mas\s+grande\b",
+            r"\bpon(?:lo)?\s+mas\s+grande\b",
+            r"\bincrease\b",
+            r"\bmake\s+it\s+bigger\b",
+            r"\bmake\s+(?:the\s+screen|monitor)\s+bigger\b",
+            r"\bincrease\s+monitor\s+size\b",
+        ],
+    ),
+    (
+        CommandName.DECREASE_SIZE,
+        [
+            r"\bbaja(?:\s+el)?\s+tamano\b",
+            r"\bbaja\s+tamaño\b",
+            r"\bbajale(?:\s+el)?\s+tamano\b",
+            r"\bdisminuye\b",
+            r"\breduce\b",
+            r"\breduce(?:\s+el)?\s+tamano\b",
+            r"\breduce\s+tamaño\b",
+            r"\bhazlo\s+(?:un\s+poco\s+)?mas\s+pequeno\b",
+            r"\bachica\s+(?:la\s+pantalla|el\s+monitor)\b",
+            r"\bachica\s+(?:la\s+pantalla|el\s+monitor)\s+(?:uno|dos|1|2)\b",
+            r"\breduce\s+(?:la\s+pantalla|el\s+monitor)\b",
+            r"\breduce\s+(?:la\s+pantalla|el\s+monitor)\s+(?:uno|dos|1|2)\b",
+            r"\bquiero\s+verlo\s+mas\s+pequeno\b",
+            r"\bpon(?:lo)?\s+mas\s+pequeno\b",
+            r"\bdecrease\b",
+            r"\bmake\s+it\s+smaller\b",
+            r"\bmake\s+(?:the\s+screen|monitor)\s+smaller\b",
+            r"\breduce\s+monitor\s+size\b",
+        ],
+    ),
 ]
 
 _SUPPRESSION_RULES: dict[CommandName, set[CommandName]] = {
@@ -91,6 +184,16 @@ def _find_fragment(text: str, aliases: list[str]) -> Optional[str]:
     for alias in aliases:
         if re.search(rf"\b{re.escape(alias)}\b", text):
             return alias
+    return None
+
+
+def _find_pattern_fragment(text: str, patterns: list[str]) -> Optional[str]:
+    """Return the matched text for the first regex pattern present in text."""
+
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            return match.group(0)
     return None
 
 
@@ -186,6 +289,27 @@ def match_by_rules(normalized_text: str, entities: dict) -> list[NormalizedComma
                 size_inches=size_inches,
             ),
         )
+        suppressed.update({CommandName.INCREASE_SIZE, CommandName.DECREASE_SIZE})
+
+    for command_name, aliases in _PRE_RELATIVE_RULES:
+        if command_name in suppressed or command_name in seen:
+            continue
+
+        fragment = _find_fragment(normalized_text, aliases)
+        if not fragment:
+            continue
+
+        _append_command(commands, seen, _exact_command(command_name, fragment))
+
+    for command_name, patterns in _RELATIVE_SIZE_RULES:
+        if command_name in suppressed or command_name in seen:
+            continue
+
+        fragment = _find_pattern_fragment(normalized_text, patterns)
+        if not fragment:
+            continue
+
+        _append_command(commands, seen, _exact_command(command_name, fragment))
 
     for command_name, aliases in _EXACT_RULES:
         if command_name in suppressed or command_name in seen:

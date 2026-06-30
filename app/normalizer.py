@@ -34,6 +34,47 @@ def _unknown_command(raw_fragment: str) -> NormalizedCommand:
     )
 
 
+def _match_fragment_by_rules(fragment: str) -> list[NormalizedCommand]:
+    """Return rule matches for a fragment, including simple sequential splits."""
+
+    entities = extract_entities(fragment)
+    rule_matches = match_by_rules(fragment, entities)
+    if not rule_matches:
+        return []
+
+    if len(rule_matches) > 1:
+        return rule_matches
+
+    split_points = [
+        " derecha ",
+        " izquierda ",
+        " arriba ",
+        " abajo ",
+        " right ",
+        " left ",
+        " up ",
+        " down ",
+    ]
+    for split_point in split_points:
+        if split_point not in f" {fragment} ":
+            continue
+
+        token = split_point.strip()
+        before, _, after = fragment.partition(token)
+        subfragments = [before.strip(), token, after.strip()]
+        commands: list[NormalizedCommand] = []
+        for subfragment in subfragments:
+            if not subfragment:
+                continue
+            sub_entities = extract_entities(subfragment)
+            sub_matches = match_by_rules(subfragment, sub_entities)
+            commands.extend(sub_matches)
+        if len(commands) > len(rule_matches):
+            return commands
+
+    return rule_matches
+
+
 def normalize_command_text(
     text: str,
     language_hint: Optional[str] = None,
@@ -96,8 +137,7 @@ def normalize_command_text(
     commands: list[NormalizedCommand] = []
 
     for fragment in fragments:
-        entities = extract_entities(fragment)
-        rule_matches = match_by_rules(fragment, entities)
+        rule_matches = _match_fragment_by_rules(fragment)
         if rule_matches:
             commands.extend(rule_matches)
             continue

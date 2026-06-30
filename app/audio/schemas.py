@@ -124,6 +124,9 @@ class AudioStatusResponse(BaseModel):
                 "allowed_extensions": [".ogg", ".mp3", ".m4a"],
                 "max_file_mb": 10,
                 "max_duration_seconds": 30,
+                "semantic_matcher_enabled": True,
+                "active_catalog_version": 1,
+                "catalog_dirty": False,
             }
         }
     )
@@ -137,6 +140,9 @@ class AudioStatusResponse(BaseModel):
     allowed_extensions: list[str]
     max_file_mb: int
     max_duration_seconds: int
+    semantic_matcher_enabled: bool = False
+    active_catalog_version: Optional[int] = None
+    catalog_dirty: bool = False
 
 
 class AudioWarmupResponse(BaseModel):
