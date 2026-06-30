@@ -77,9 +77,12 @@ _FALLBACK_ENTITIES = {
             f"{value} inch",
             f"{value} inches",
             f"{value} pulgadas",
+            f"{value} puladas",
             f"tamano {value}",
+            f"tamano de {value}",
             f"set {value} inches",
             f"ponlo en {value} pulgadas",
+            f"ponlo en {value} puladas",
         ]
         for value in ("55", "65", "75", "95", "120")
     },

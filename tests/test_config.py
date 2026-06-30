@@ -41,11 +41,13 @@ def test_audio_config_defaults(monkeypatch) -> None:
     assert config_module.TRANSCRIPTION_LANGUAGE_DEFAULT == ""
     assert config_module.MAX_AUDIO_FILE_MB == 10
     assert config_module.MAX_AUDIO_DURATION_SECONDS == 30
-    assert config_module.ALLOWED_AUDIO_EXTENSIONS == [".ogg", ".mp3"]
+    assert config_module.ALLOWED_AUDIO_EXTENSIONS == [".ogg", ".mp3", ".m4a"]
     assert config_module.ALLOWED_AUDIO_MIME_TYPES == [
         "audio/ogg",
         "audio/mpeg",
         "audio/mp3",
+        "audio/mp4",
+        "audio/x-m4a",
         "application/octet-stream",
     ]
     assert config_module.AUDIO_TEMP_DIR == "/tmp/voice-command-audio"

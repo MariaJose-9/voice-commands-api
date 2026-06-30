@@ -121,7 +121,7 @@ class AudioStatusResponse(BaseModel):
                 "device": "cpu",
                 "compute_type": "int8",
                 "model_loaded": False,
-                "allowed_extensions": [".ogg", ".mp3"],
+                "allowed_extensions": [".ogg", ".mp3", ".m4a"],
                 "max_file_mb": 10,
                 "max_duration_seconds": 30,
             }

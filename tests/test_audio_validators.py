@@ -19,6 +19,10 @@ def test_validate_audio_filename_accepts_mp3() -> None:
     assert validate_audio_filename("file.mp3") == ".mp3"
 
 
+def test_validate_audio_filename_accepts_m4a() -> None:
+    assert validate_audio_filename("file.m4a") == ".m4a"
+
+
 def test_validate_audio_filename_rejects_wav() -> None:
     with pytest.raises(ValueError, match="Unsupported audio file extension"):
         validate_audio_filename("file.wav")
@@ -35,6 +39,14 @@ def test_validate_audio_content_type_accepts_audio_mpeg() -> None:
 
 def test_validate_audio_content_type_accepts_audio_ogg() -> None:
     validate_audio_content_type("audio/ogg", ".ogg")
+
+
+def test_validate_audio_content_type_accepts_audio_mp4_for_m4a() -> None:
+    validate_audio_content_type("audio/mp4", ".m4a")
+
+
+def test_validate_audio_content_type_accepts_audio_x_m4a() -> None:
+    validate_audio_content_type("audio/x-m4a", ".m4a")
 
 
 def test_validate_audio_content_type_accepts_octet_stream_for_valid_extension() -> None:
@@ -58,4 +70,5 @@ def test_sanitize_audio_filename_removes_path_traversal() -> None:
 def test_is_allowed_audio_extension() -> None:
     assert is_allowed_audio_extension(".ogg") is True
     assert is_allowed_audio_extension(".mp3") is True
+    assert is_allowed_audio_extension(".m4a") is True
     assert is_allowed_audio_extension(".wav") is False

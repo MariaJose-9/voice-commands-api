@@ -183,6 +183,21 @@ def test_normalize_monitor_and_absolute_size_with_joined_unit() -> None:
     assert response.commands[1].size_inches == 55
 
 
+def test_normalize_audio_transcription_size_typo_sequence() -> None:
+    response = normalize_command_text(
+        "pantalla 2 mueve la la derecha y luego las es en el tamaño de 55 puladas",
+        language_hint="es",
+    )
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.MOVE_RIGHT,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[2].size_inches == 55
+    assert response.needs_confirmation is False
+
+
 def test_normalize_unknown_returns_confirmation(monkeypatch) -> None:
     monkeypatch.setattr(
         normalizer_module.runtime_settings_service,

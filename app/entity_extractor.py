@@ -46,12 +46,13 @@ def _extract_size(text: str, aliases_by_value: dict[str, list[str]]) -> int | No
         return None
 
     sizes_group = "|".join(re.escape(str(size)) for size in valid_sizes)
+    spanish_size_unit = r"(?:pulgada|pulgadas|pulada|puladas)"
     patterns: list[Pattern[str]] = [
         re.compile(rf"\b({sizes_group})\s*inch(?:es)?\b"),
-        re.compile(rf"\b({sizes_group})\s*pulgadas\b"),
-        re.compile(rf"\btamano\s+({sizes_group})\b"),
+        re.compile(rf"\b({sizes_group})\s*{spanish_size_unit}\b"),
+        re.compile(rf"\btamano(?:\s+de)?\s+({sizes_group})\b"),
         re.compile(rf"\bset\s+({sizes_group})\s*inch(?:es)?\b"),
-        re.compile(rf"\bponlo\s+en\s+({sizes_group})\s*pulgadas\b"),
+        re.compile(rf"\bponlo\s+en\s+({sizes_group})\s*{spanish_size_unit}\b"),
     ]
 
     for pattern in patterns:

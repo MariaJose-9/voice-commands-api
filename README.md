@@ -175,8 +175,8 @@ TRANSCRIPTION_VAD_FILTER=false
 TRANSCRIPTION_LANGUAGE_DEFAULT=
 MAX_AUDIO_FILE_MB=10
 MAX_AUDIO_DURATION_SECONDS=30
-ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3
-ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,application/octet-stream
+ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3,.m4a
+ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,application/octet-stream
 AUDIO_TEMP_DIR=/tmp/voice-command-audio
 AUDIO_MODEL_WARMUP_ON_STARTUP=false
 FUZZY_THRESHOLD=88
@@ -216,7 +216,7 @@ La primera llamada que use el matcher semántico puede demorar porque `sentence-
 
 ## Audio transcription
 
-El API puede recibir archivos `.ogg` o `.mp3`.
+El API puede recibir archivos `.ogg`, `.mp3` o `.m4a`.
 
 La transcripción usa `faster-whisper` de forma local/offline y carga el modelo de manera lazy: no se descarga ni se inicializa hasta que llamas un endpoint de audio o haces warmup manual.
 
@@ -241,8 +241,8 @@ TRANSCRIPTION_VAD_FILTER=false
 TRANSCRIPTION_LANGUAGE_DEFAULT=
 MAX_AUDIO_FILE_MB=10
 MAX_AUDIO_DURATION_SECONDS=30
-ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3
-ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,application/octet-stream
+ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3,.m4a
+ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,application/octet-stream
 AUDIO_TEMP_DIR=/tmp/voice-command-audio
 ENABLE_AUDIO_TRANSCRIPTION_LOGS=true
 ```
@@ -266,7 +266,7 @@ curl http://localhost:8000/v1/audio/status
 
 ```bash
 curl -X POST http://localhost:8000/v1/audio/transcribe \
-  -F "file=@sample.mp3" \
+  -F "file=@sample.m4a" \
   -F "language_hint=es"
 ```
 

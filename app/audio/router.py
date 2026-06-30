@@ -287,11 +287,11 @@ def warmup_audio() -> AudioWarmupResponse:
     summary="Transcribe an audio file",
     description=(
         "Accepts `multipart/form-data` with an uploaded audio file and an optional "
-        "`language_hint`. Supports `.ogg` and `.mp3` uploads. Returns the raw "
+        "`language_hint`. Supports `.ogg`, `.mp3`, and `.m4a` uploads. Returns the raw "
         "transcribed text and segment timing metadata. This endpoint only "
         "transcribes audio and does not normalize commands.\n\n"
         "Example form fields:\n"
-        "- `file`: `command.ogg`\n"
+        "- `file`: `command.m4a`\n"
         "- `language_hint`: `es`"
     ),
 )
@@ -329,9 +329,10 @@ def transcribe_audio(
     description=(
         "Accepts `multipart/form-data`, transcribes the uploaded audio locally, "
         "and then runs the existing command normalizer over the transcribed text. "
-        "Returns both the transcription payload and the normalization result.\n\n"
+        "Returns both the transcription payload and the normalization result. "
+        "Supports `.ogg`, `.mp3`, and `.m4a` uploads.\n\n"
         "Example form fields:\n"
-        "- `file`: `command.mp3`\n"
+        "- `file`: `command.m4a`\n"
         "- `language_hint`: `en`\n"
         '- `context_json`: `{\"selected_monitor\": null, \"active_action\": \"stream\"}`'
     ),

@@ -63,6 +63,13 @@ def test_extract_size_without_space_before_unit() -> None:
     assert entities["size_inches"] == 55
 
 
+def test_extract_size_from_transcription_typo_puladas() -> None:
+    entities = extract_entities(
+        normalize_text("pantalla 2 mueve la derecha y luego en el tamaño de 55 puladas")
+    )
+    assert entities["size_inches"] == 55
+
+
 def test_extract_invalid_size_returns_none() -> None:
     entities = extract_entities(normalize_text("set 70 inches"))
     assert entities["size_inches"] is None
