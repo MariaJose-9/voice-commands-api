@@ -19,6 +19,17 @@ def _reload_config(monkeypatch):
         "ALLOWED_AUDIO_MIME_TYPES",
         "AUDIO_TEMP_DIR",
         "AUDIO_MODEL_WARMUP_ON_STARTUP",
+        "LLM_COMMAND_MODE",
+        "OLLAMA_TIMEOUT_SECONDS",
+        "LLM_ACCEPT_THRESHOLD",
+        "LLM_CONFIDENCE_CAP",
+        "LLM_USE_FULL_TEXT_ON_INCOMPLETE",
+        "LLM_USE_PREVIOUS_COMMANDS",
+        "DEBUG_LLM_PROMPT",
+        "ALLOW_DYNAMIC_SIZE_INCHES",
+        "MIN_SIZE_INCHES",
+        "MAX_SIZE_INCHES",
+        "ALLOWED_SIZE_INCHES",
     ]
     for key in keys:
         monkeypatch.delenv(key, raising=False)
@@ -52,6 +63,17 @@ def test_audio_config_defaults(monkeypatch) -> None:
     ]
     assert config_module.AUDIO_TEMP_DIR == "/tmp/voice-command-audio"
     assert config_module.AUDIO_MODEL_WARMUP_ON_STARTUP is False
+    assert config_module.LLM_COMMAND_MODE == "fallback"
+    assert config_module.OLLAMA_TIMEOUT_SECONDS == 8.0
+    assert config_module.LLM_ACCEPT_THRESHOLD == 0.78
+    assert config_module.LLM_CONFIDENCE_CAP == 0.90
+    assert config_module.LLM_USE_FULL_TEXT_ON_INCOMPLETE is True
+    assert config_module.LLM_USE_PREVIOUS_COMMANDS is True
+    assert config_module.DEBUG_LLM_PROMPT is False
+    assert config_module.ALLOW_DYNAMIC_SIZE_INCHES is True
+    assert config_module.MIN_SIZE_INCHES == 40
+    assert config_module.MAX_SIZE_INCHES == 150
+    assert config_module.ALLOWED_SIZE_INCHES == [55, 65, 75, 95, 120]
 
 
 def test_audio_config_reads_env_overrides(monkeypatch) -> None:
@@ -72,6 +94,17 @@ def test_audio_config_reads_env_overrides(monkeypatch) -> None:
     )
     monkeypatch.setenv("AUDIO_TEMP_DIR", "/var/tmp/audio")
     monkeypatch.setenv("AUDIO_MODEL_WARMUP_ON_STARTUP", "true")
+    monkeypatch.setenv("LLM_COMMAND_MODE", "hybrid")
+    monkeypatch.setenv("OLLAMA_TIMEOUT_SECONDS", "9.5")
+    monkeypatch.setenv("LLM_ACCEPT_THRESHOLD", "0.8")
+    monkeypatch.setenv("LLM_CONFIDENCE_CAP", "0.88")
+    monkeypatch.setenv("LLM_USE_FULL_TEXT_ON_INCOMPLETE", "false")
+    monkeypatch.setenv("LLM_USE_PREVIOUS_COMMANDS", "false")
+    monkeypatch.setenv("DEBUG_LLM_PROMPT", "true")
+    monkeypatch.setenv("ALLOW_DYNAMIC_SIZE_INCHES", "false")
+    monkeypatch.setenv("MIN_SIZE_INCHES", "42")
+    monkeypatch.setenv("MAX_SIZE_INCHES", "140")
+    monkeypatch.setenv("ALLOWED_SIZE_INCHES", "50,60,70")
 
     import app.config as config_module
 
@@ -95,3 +128,14 @@ def test_audio_config_reads_env_overrides(monkeypatch) -> None:
     ]
     assert config_module.AUDIO_TEMP_DIR == "/var/tmp/audio"
     assert config_module.AUDIO_MODEL_WARMUP_ON_STARTUP is True
+    assert config_module.LLM_COMMAND_MODE == "hybrid"
+    assert config_module.OLLAMA_TIMEOUT_SECONDS == 9.5
+    assert config_module.LLM_ACCEPT_THRESHOLD == 0.8
+    assert config_module.LLM_CONFIDENCE_CAP == 0.88
+    assert config_module.LLM_USE_FULL_TEXT_ON_INCOMPLETE is False
+    assert config_module.LLM_USE_PREVIOUS_COMMANDS is False
+    assert config_module.DEBUG_LLM_PROMPT is True
+    assert config_module.ALLOW_DYNAMIC_SIZE_INCHES is False
+    assert config_module.MIN_SIZE_INCHES == 42
+    assert config_module.MAX_SIZE_INCHES == 140
+    assert config_module.ALLOWED_SIZE_INCHES == [50, 60, 70]

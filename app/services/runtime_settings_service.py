@@ -80,6 +80,26 @@ def get_list_setting(key: str, default: list[str]) -> list[str]:
     return default
 
 
+def get_runtime_str_setting(key: str, default: str) -> str:
+    return get_str_setting(key, default)
+
+
+def get_runtime_bool_setting(key: str, default: bool) -> bool:
+    return get_bool_setting(key, default)
+
+
+def get_runtime_int_setting(key: str, default: int) -> int:
+    return get_int_setting(key, default)
+
+
+def get_runtime_float_setting(key: str, default: float) -> float:
+    return get_float_setting(key, default)
+
+
+def get_runtime_list_setting(key: str, default: list[str]) -> list[str]:
+    return get_list_setting(key, default)
+
+
 def get_audio_bool_setting(key: str, default: bool) -> bool:
     return get_bool_setting(key, default)
 

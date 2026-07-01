@@ -13,14 +13,36 @@
       <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
     </div>
   </div>
+  {% if error %}
+  <div class="notice notice-error">{{ error }}</div>
+  {% endif %}
   <form method="post" action="/admin/settings/update" class="form-stack">
     <label><span>FUZZY_THRESHOLD</span><input type="number" step="0.01" name="FUZZY_THRESHOLD" value="{{ settings.FUZZY_THRESHOLD }}"></label>
     <label><span>SEMANTIC_THRESHOLD</span><input type="number" step="0.01" name="SEMANTIC_THRESHOLD" value="{{ settings.SEMANTIC_THRESHOLD }}"></label>
     <label><span>SEMANTIC_CONFIRMATION_THRESHOLD</span><input type="number" step="0.01" name="SEMANTIC_CONFIRMATION_THRESHOLD" value="{{ settings.SEMANTIC_CONFIRMATION_THRESHOLD }}"></label>
     <label class="checkbox"><input type="checkbox" name="ENABLE_SEMANTIC_MATCHER" {% if settings.ENABLE_SEMANTIC_MATCHER in [True, 'true', 'True'] %}checked{% endif %}> <span>ENABLE_SEMANTIC_MATCHER</span></label>
-    <label class="checkbox"><input type="checkbox" name="ENABLE_OLLAMA_FALLBACK" {% if settings.ENABLE_OLLAMA_FALLBACK in [True, 'true', 'True'] %}checked{% endif %}> <span>ENABLE_OLLAMA_FALLBACK</span></label>
     <label><span>SEMANTIC_MODEL_NAME</span><input type="text" name="SEMANTIC_MODEL_NAME" value="{{ settings.SEMANTIC_MODEL_NAME }}"></label>
     <label><span>MAX_TEXT_LENGTH</span><input type="number" name="MAX_TEXT_LENGTH" value="{{ settings.MAX_TEXT_LENGTH }}"></label>
+    <hr>
+    <h3>LLM command interpreter</h3>
+    <label class="checkbox"><input type="checkbox" name="ENABLE_OLLAMA_FALLBACK" {% if settings.ENABLE_OLLAMA_FALLBACK in [True, 'true', 'True', 'on'] %}checked{% endif %}> <span>ENABLE_OLLAMA_FALLBACK</span><small>{{ setting_descriptions.ENABLE_OLLAMA_FALLBACK }}</small></label>
+    <label><span>LLM_COMMAND_MODE</span><select name="LLM_COMMAND_MODE">
+      {% for mode in ["off", "fallback", "hybrid", "primary"] %}
+      <option value="{{ mode }}" {% if settings.LLM_COMMAND_MODE == mode %}selected{% endif %}>{{ mode }}</option>
+      {% endfor %}
+    </select><small>{{ setting_descriptions.LLM_COMMAND_MODE }}</small></label>
+    <label><span>OLLAMA_BASE_URL</span><input type="text" name="OLLAMA_BASE_URL" value="{{ settings.OLLAMA_BASE_URL }}"><small>{{ setting_descriptions.OLLAMA_BASE_URL }}</small></label>
+    <label><span>OLLAMA_MODEL</span><input type="text" name="OLLAMA_MODEL" value="{{ settings.OLLAMA_MODEL }}"><small>{{ setting_descriptions.OLLAMA_MODEL }}</small></label>
+    <label><span>OLLAMA_TIMEOUT_SECONDS</span><input type="number" min="1" max="60" step="0.1" name="OLLAMA_TIMEOUT_SECONDS" value="{{ settings.OLLAMA_TIMEOUT_SECONDS }}"><small>{{ setting_descriptions.OLLAMA_TIMEOUT_SECONDS }}</small></label>
+    <label><span>LLM_ACCEPT_THRESHOLD</span><input type="number" min="0" max="1" step="0.01" name="LLM_ACCEPT_THRESHOLD" value="{{ settings.LLM_ACCEPT_THRESHOLD }}"><small>{{ setting_descriptions.LLM_ACCEPT_THRESHOLD }}</small></label>
+    <label><span>LLM_CONFIDENCE_CAP</span><input type="number" min="0" max="1" step="0.01" name="LLM_CONFIDENCE_CAP" value="{{ settings.LLM_CONFIDENCE_CAP }}"><small>{{ setting_descriptions.LLM_CONFIDENCE_CAP }}</small></label>
+    <label class="checkbox"><input type="checkbox" name="LLM_USE_FULL_TEXT_ON_INCOMPLETE" {% if settings.LLM_USE_FULL_TEXT_ON_INCOMPLETE in [True, 'true', 'True', 'on'] %}checked{% endif %}> <span>LLM_USE_FULL_TEXT_ON_INCOMPLETE</span><small>{{ setting_descriptions.LLM_USE_FULL_TEXT_ON_INCOMPLETE }}</small></label>
+    <label class="checkbox"><input type="checkbox" name="LLM_USE_PREVIOUS_COMMANDS" {% if settings.LLM_USE_PREVIOUS_COMMANDS in [True, 'true', 'True', 'on'] %}checked{% endif %}> <span>LLM_USE_PREVIOUS_COMMANDS</span><small>{{ setting_descriptions.LLM_USE_PREVIOUS_COMMANDS }}</small></label>
+    <label class="checkbox"><input type="checkbox" name="ALLOW_DYNAMIC_SIZE_INCHES" {% if settings.ALLOW_DYNAMIC_SIZE_INCHES in [True, 'true', 'True', 'on'] %}checked{% endif %}> <span>ALLOW_DYNAMIC_SIZE_INCHES</span><small>{{ setting_descriptions.ALLOW_DYNAMIC_SIZE_INCHES }}</small></label>
+    <label><span>MIN_SIZE_INCHES</span><input type="number" min="1" name="MIN_SIZE_INCHES" value="{{ settings.MIN_SIZE_INCHES }}"><small>{{ setting_descriptions.MIN_SIZE_INCHES }}</small></label>
+    <label><span>MAX_SIZE_INCHES</span><input type="number" min="1" name="MAX_SIZE_INCHES" value="{{ settings.MAX_SIZE_INCHES }}"><small>{{ setting_descriptions.MAX_SIZE_INCHES }}</small></label>
+    <label><span>ALLOWED_SIZE_INCHES</span><input type="text" name="ALLOWED_SIZE_INCHES" value="{{ settings.ALLOWED_SIZE_INCHES }}"><small>{{ setting_descriptions.ALLOWED_SIZE_INCHES }}</small></label>
+    <label class="checkbox"><input type="checkbox" name="DEBUG_LLM_PROMPT" {% if settings.DEBUG_LLM_PROMPT in [True, 'true', 'True', 'on'] %}checked{% endif %}> <span>DEBUG_LLM_PROMPT</span><small>{{ setting_descriptions.DEBUG_LLM_PROMPT }}</small></label>
     <hr>
     <label class="checkbox"><input type="checkbox" name="ENABLE_AUDIO_TRANSCRIPTION" {% if settings.ENABLE_AUDIO_TRANSCRIPTION in [True, 'true', 'True'] %}checked{% endif %}> <span>ENABLE_AUDIO_TRANSCRIPTION</span></label>
     <label><span>TRANSCRIPTION_ENGINE</span><input type="text" name="TRANSCRIPTION_ENGINE" value="{{ settings.TRANSCRIPTION_ENGINE }}"></label>

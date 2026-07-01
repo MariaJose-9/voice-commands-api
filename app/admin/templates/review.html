@@ -92,6 +92,16 @@
             {% for command in log.result_json.get("commands", []) %}
               <div>{{ command.get("command") }}</div>
             {% endfor %}
+            {% set metadata = log.result_json.get("metadata", {}) %}
+            {% if metadata.get("llm_called") %}
+              <span class="pill">LLM used</span>
+            {% endif %}
+            {% if metadata.get("completeness_reason") %}
+              <span class="pill">Incomplete base result</span>
+            {% endif %}
+            {% if metadata.get("merged_with_llm") %}
+              <span class="pill">Completed by LLM</span>
+            {% endif %}
           {% else %}
             -
           {% endif %}

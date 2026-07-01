@@ -12,7 +12,12 @@
     <div class="pill-row">
       <span class="pill">ENV: {{ dashboard.env }}</span>
       <span class="pill">Semantic: {{ "on" if dashboard.semantic_enabled else "off" }}</span>
+      <span class="pill">LLM: {{ dashboard.llm_mode }}</span>
+      <span class="pill">Ollama: {{ "on" if dashboard.ollama_enabled else "off" }}</span>
+      <span class="pill">Ollama model: {{ dashboard.ollama_model }}</span>
+      <span class="pill">Dynamic sizes: {{ "on" if dashboard.dynamic_sizes_enabled else "off" }}</span>
       <span class="pill">Transcription: {{ dashboard.transcription_model }}</span>
+      <span class="pill">Active catalog: {{ dashboard.active_version if dashboard.active_version else "none" }}</span>
       <span class="pill">Pending publish: {{ "yes" if dashboard.catalog_dirty else "no" }}</span>
       <span class="pill">Admin: {{ current_user.email }}</span>
       {% if dashboard.catalog_dirty %}

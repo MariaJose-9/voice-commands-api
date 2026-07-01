@@ -48,6 +48,82 @@ def test_health_db_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.json() == {"status": "error", "database": "unavailable"}
 
 
+def test_api_auth_token_does_not_protect_health(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(main_module, "API_AUTH_TOKEN", "secret-token")
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_api_auth_token_requires_token_for_v1(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(main_module, "API_AUTH_TOKEN", "secret-token")
+
+    response = client.get("/v1/commands/catalog")
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or missing API token."}
+
+
+def test_api_auth_token_required_in_production_when_not_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(main_module, "ENV", "production")
+    monkeypatch.setattr(main_module, "API_AUTH_TOKEN", "")
+
+    response = client.get("/v1/commands/catalog")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "API_AUTH_TOKEN must be configured in production."
+    }
+
+
+def test_api_auth_token_protects_v1_in_production(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(main_module, "ENV", "production")
+    monkeypatch.setattr(main_module, "API_AUTH_TOKEN", "secret-token")
+
+    response = client.get("/v1/commands/catalog")
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid or missing API token."}
+
+
+def test_api_auth_token_accepts_bearer_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(main_module, "API_AUTH_TOKEN", "secret-token")
+
+    response = client.get(
+        "/v1/commands/catalog",
+        headers={"Authorization": "Bearer secret-token"},
+    )
+
+    assert response.status_code == 200
+    assert "commands" in response.json()
+
+
+def test_api_auth_token_accepts_x_api_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(main_module, "API_AUTH_TOKEN", "secret-token")
+
+    response = client.get(
+        "/v1/commands/catalog",
+        headers={"X-API-Token": "secret-token"},
+    )
+
+    assert response.status_code == 200
+    assert "commands" in response.json()
+
+
 def test_catalog_endpoint() -> None:
     response = client.get("/v1/commands/catalog")
     assert response.status_code == 200

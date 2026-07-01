@@ -9,6 +9,7 @@ from app.config import (
     ENABLE_OLLAMA_FALLBACK,
     ENABLE_SEMANTIC_MATCHER,
     FUZZY_THRESHOLD,
+    LLM_COMMAND_MODE,
     MAX_TEXT_LENGTH,
     SEMANTIC_CONFIRMATION_THRESHOLD,
     SEMANTIC_THRESHOLD,
@@ -16,11 +17,13 @@ from app.config import (
 from app.entity_extractor import extract_entities
 from app.fuzzy_matcher import match_by_fuzzy
 from app.multi_command import deduplicate_commands, split_into_fragments
-from app.ollama_fallback import ollama_fallback_normalize
+from app.ollama_fallback import interpret_commands_with_llm, ollama_fallback_normalize
 from app.preprocessor import normalize_text
 from app.rule_matcher import match_by_rules
 from app.schemas import CommandName, MatchMethod, NormalizeResponse, NormalizedCommand
 from app.semantic_matcher import match_by_semantic
+from app.services.command_merge_service import merge_command_results
+from app.services.completeness_checker import check_command_completeness
 
 
 def _unknown_command(raw_fragment: str) -> NormalizedCommand:
@@ -75,6 +78,97 @@ def _match_fragment_by_rules(fragment: str) -> list[NormalizedCommand]:
     return rule_matches
 
 
+def _build_base_response(
+    *,
+    raw_text: str,
+    normalized_text: str,
+    language_hint: Optional[str],
+    commands: list[NormalizedCommand],
+    confirmation_threshold: float,
+    message: Optional[str] = None,
+) -> NormalizeResponse:
+    commands = deduplicate_commands(commands)
+    if not commands:
+        commands = [_unknown_command(normalized_text)]
+
+    needs_confirmation = (
+        not commands
+        or any(command.confidence < confirmation_threshold for command in commands)
+        or any(command.command == CommandName.UNKNOWN for command in commands)
+    )
+    return NormalizeResponse(
+        ok=all(command.command != CommandName.UNKNOWN for command in commands),
+        raw_text=raw_text,
+        normalized_text=normalized_text,
+        language=language_hint,
+        commands=commands,
+        needs_confirmation=needs_confirmation,
+        message=message,
+    )
+
+
+def _should_call_llm(
+    *,
+    mode: str,
+    base_response: NormalizeResponse,
+    completeness_should_call_llm: bool,
+    coverage_score: float,
+) -> tuple[bool, Optional[str]]:
+    if mode == "off":
+        return False, "LLM skipped"
+    if mode == "primary":
+        return True, "LLM used: primary"
+
+    fallback_condition = (
+        not base_response.commands
+        or base_response.needs_confirmation
+        or any(command.command == CommandName.UNKNOWN for command in base_response.commands)
+    )
+    if mode == "fallback":
+        return (
+            (True, "LLM used: fallback_condition")
+            if fallback_condition
+            else (False, "LLM skipped")
+        )
+
+    if mode == "hybrid":
+        if fallback_condition:
+            return True, "LLM used: fallback_condition"
+        if completeness_should_call_llm:
+            return True, "LLM used: incomplete_result"
+        if coverage_score < 0.55:
+            return True, "LLM used: low_coverage"
+        return False, "LLM skipped"
+
+    return (
+        (True, "LLM used: fallback_condition")
+        if fallback_condition
+        else (False, "LLM skipped")
+    )
+
+
+def _call_llm_interpreter(
+    *,
+    raw_text: str,
+    normalized_text: str,
+    language_hint: Optional[str],
+    context: Optional[dict],
+    previous_commands: list[NormalizedCommand],
+    completeness_reason: Optional[str],
+) -> Optional[NormalizeResponse]:
+    try:
+        return interpret_commands_with_llm(
+            raw_text=raw_text,
+            normalized_text=normalized_text,
+            language_hint=language_hint,
+            context=context,
+            previous_commands=previous_commands,
+            completeness_reason=completeness_reason,
+        )
+    except Exception:
+        return None
+
+
 def normalize_command_text(
     text: str,
     language_hint: Optional[str] = None,
@@ -106,6 +200,12 @@ def normalize_command_text(
         "ENABLE_OLLAMA_FALLBACK",
         ENABLE_OLLAMA_FALLBACK,
     )
+    llm_command_mode = runtime_settings_service.get_runtime_str_setting(
+        "LLM_COMMAND_MODE",
+        LLM_COMMAND_MODE,
+    ).strip().lower()
+    if not enable_ollama_fallback and llm_command_mode != "primary":
+        llm_command_mode = "off"
 
     raw_text = text
     if not text or not text.strip():
@@ -133,6 +233,29 @@ def normalize_command_text(
         )
 
     normalized_text = normalize_text(text)
+
+    if llm_command_mode == "primary":
+        llm_response = _call_llm_interpreter(
+            raw_text=raw_text,
+            normalized_text=normalized_text,
+            language_hint=language_hint,
+            context=context,
+            previous_commands=[],
+            completeness_reason="primary",
+        )
+        if llm_response is not None:
+            return merge_command_results(
+                _build_base_response(
+                    raw_text=raw_text,
+                    normalized_text=normalized_text,
+                    language_hint=language_hint,
+                    commands=[],
+                    confirmation_threshold=semantic_threshold,
+                    message="LLM used: primary",
+                ),
+                llm_response,
+            )
+
     fragments = split_into_fragments(normalized_text)
     commands: list[NormalizedCommand] = []
 
@@ -158,38 +281,50 @@ def normalize_command_text(
                 commands.append(semantic_match)
                 continue
 
-        if enable_ollama_fallback:
-            llm_response = ollama_fallback_normalize(
-                text=fragment,
-                normalized_text=fragment,
-                language_hint=language_hint,
-            )
-            if llm_response is not None:
-                commands.extend(llm_response.commands)
-                continue
-
         if semantic_match is not None:
             commands.append(semantic_match)
 
-    commands = deduplicate_commands(commands)
-
-    if not commands:
-        commands = [_unknown_command(normalized_text)]
-
-    needs_confirmation = (
-        not commands
-        or any(command.confidence < semantic_threshold for command in commands)
-        or any(command.command == CommandName.UNKNOWN for command in commands)
-    )
-
-    _ = context
-
-    return NormalizeResponse(
-        ok=all(command.command != CommandName.UNKNOWN for command in commands),
+    base_response = _build_base_response(
         raw_text=raw_text,
         normalized_text=normalized_text,
-        language=language_hint,
+        language_hint=language_hint,
         commands=commands,
-        needs_confirmation=needs_confirmation,
-        message=None,
+        confirmation_threshold=semantic_threshold,
     )
+    completeness = check_command_completeness(normalized_text, base_response.commands)
+    should_call_llm, llm_message = _should_call_llm(
+        mode=llm_command_mode,
+        base_response=base_response,
+        completeness_should_call_llm=completeness.should_call_llm,
+        coverage_score=completeness.coverage_score,
+    )
+
+    if not should_call_llm:
+        base_response.message = llm_message if base_response.message is None else base_response.message
+        return base_response
+
+    llm_response = _call_llm_interpreter(
+        raw_text=raw_text,
+        normalized_text=normalized_text,
+        language_hint=language_hint,
+        context=context,
+        previous_commands=base_response.commands,
+        completeness_reason=completeness.reason,
+    )
+    if llm_response is None and enable_ollama_fallback and llm_command_mode == "fallback":
+        llm_response = ollama_fallback_normalize(
+            text=normalized_text,
+            normalized_text=normalized_text,
+            language_hint=language_hint,
+        )
+
+    if llm_response is None:
+        base_response.message = "LLM failed, returned base parser result"
+        return base_response
+
+    merged_response = merge_command_results(base_response, llm_response)
+    if merged_response.message == "Completed with LLM" and llm_message:
+        merged_response.message = f"{llm_message}; Completed with LLM"
+    elif merged_response.message is None:
+        merged_response.message = llm_message
+    return merged_response

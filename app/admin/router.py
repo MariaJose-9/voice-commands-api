@@ -38,14 +38,27 @@ from app.config import (
     ADMIN_SESSION_MAX_AGE_SECONDS,
     ALLOWED_AUDIO_EXTENSIONS,
     ALLOWED_AUDIO_MIME_TYPES,
+    ALLOWED_SIZE_INCHES,
+    ALLOW_DYNAMIC_SIZE_INCHES,
+    DEBUG_LLM_PROMPT,
     ENABLE_SEMANTIC_MATCHER,
     ENABLE_AUDIO_TRANSCRIPTION,
     ENV,
     ENABLE_OLLAMA_FALLBACK,
     FUZZY_THRESHOLD,
+    LLM_ACCEPT_THRESHOLD,
+    LLM_COMMAND_MODE,
+    LLM_CONFIDENCE_CAP,
+    LLM_USE_FULL_TEXT_ON_INCOMPLETE,
+    LLM_USE_PREVIOUS_COMMANDS,
     MAX_TEXT_LENGTH,
     MAX_AUDIO_DURATION_SECONDS,
     MAX_AUDIO_FILE_MB,
+    MAX_SIZE_INCHES,
+    MIN_SIZE_INCHES,
+    OLLAMA_BASE_URL,
+    OLLAMA_MODEL,
+    OLLAMA_TIMEOUT_SECONDS,
     SEMANTIC_CONFIRMATION_THRESHOLD,
     SEMANTIC_MODEL_NAME,
     SEMANTIC_THRESHOLD,
@@ -104,7 +117,34 @@ MATCHING_SETTINGS = {
     "SEMANTIC_CONFIRMATION_THRESHOLD",
     "ENABLE_SEMANTIC_MATCHER",
     "SEMANTIC_MODEL_NAME",
+    "ENABLE_OLLAMA_FALLBACK",
+    "LLM_COMMAND_MODE",
+    "OLLAMA_MODEL",
+    "LLM_ACCEPT_THRESHOLD",
+    "LLM_CONFIDENCE_CAP",
+    "ALLOW_DYNAMIC_SIZE_INCHES",
+    "MIN_SIZE_INCHES",
+    "MAX_SIZE_INCHES",
+    "ALLOWED_SIZE_INCHES",
 }
+LLM_SETTINGS_KEYS = {
+    "ENABLE_OLLAMA_FALLBACK",
+    "LLM_COMMAND_MODE",
+    "OLLAMA_BASE_URL",
+    "OLLAMA_MODEL",
+    "OLLAMA_TIMEOUT_SECONDS",
+    "LLM_ACCEPT_THRESHOLD",
+    "LLM_CONFIDENCE_CAP",
+    "LLM_USE_FULL_TEXT_ON_INCOMPLETE",
+    "LLM_USE_PREVIOUS_COMMANDS",
+    "ALLOW_DYNAMIC_SIZE_INCHES",
+    "MIN_SIZE_INCHES",
+    "MAX_SIZE_INCHES",
+    "ALLOWED_SIZE_INCHES",
+    "DEBUG_LLM_PROMPT",
+}
+LLM_RUNTIME_REFRESH_SETTINGS = LLM_SETTINGS_KEYS
+LLM_RESTART_REQUIRED_SETTINGS: set[str] = set()
 EDITABLE_SETTINGS = {
     "FUZZY_THRESHOLD": FUZZY_THRESHOLD,
     "SEMANTIC_THRESHOLD": SEMANTIC_THRESHOLD,
@@ -113,6 +153,19 @@ EDITABLE_SETTINGS = {
     "ENABLE_OLLAMA_FALLBACK": ENABLE_OLLAMA_FALLBACK,
     "SEMANTIC_MODEL_NAME": SEMANTIC_MODEL_NAME,
     "MAX_TEXT_LENGTH": MAX_TEXT_LENGTH,
+    "LLM_COMMAND_MODE": LLM_COMMAND_MODE,
+    "OLLAMA_BASE_URL": OLLAMA_BASE_URL,
+    "OLLAMA_MODEL": OLLAMA_MODEL,
+    "OLLAMA_TIMEOUT_SECONDS": OLLAMA_TIMEOUT_SECONDS,
+    "LLM_ACCEPT_THRESHOLD": LLM_ACCEPT_THRESHOLD,
+    "LLM_CONFIDENCE_CAP": LLM_CONFIDENCE_CAP,
+    "LLM_USE_FULL_TEXT_ON_INCOMPLETE": LLM_USE_FULL_TEXT_ON_INCOMPLETE,
+    "LLM_USE_PREVIOUS_COMMANDS": LLM_USE_PREVIOUS_COMMANDS,
+    "ALLOW_DYNAMIC_SIZE_INCHES": ALLOW_DYNAMIC_SIZE_INCHES,
+    "MIN_SIZE_INCHES": MIN_SIZE_INCHES,
+    "MAX_SIZE_INCHES": MAX_SIZE_INCHES,
+    "ALLOWED_SIZE_INCHES": ALLOWED_SIZE_INCHES,
+    "DEBUG_LLM_PROMPT": DEBUG_LLM_PROMPT,
     "ENABLE_AUDIO_TRANSCRIPTION": ENABLE_AUDIO_TRANSCRIPTION,
     "TRANSCRIPTION_ENGINE": TRANSCRIPTION_ENGINE,
     "TRANSCRIPTION_MODEL_NAME": TRANSCRIPTION_MODEL_NAME,
@@ -148,6 +201,23 @@ AUDIO_MODEL_RELOAD_SETTINGS = {
 AUDIO_LIST_SETTINGS = {
     "ALLOWED_AUDIO_EXTENSIONS",
     "ALLOWED_AUDIO_MIME_TYPES",
+}
+LIST_SETTINGS = AUDIO_LIST_SETTINGS | {"ALLOWED_SIZE_INCHES"}
+SETTING_DESCRIPTIONS = {
+    "ENABLE_OLLAMA_FALLBACK": "Enable local Ollama command interpretation.",
+    "LLM_COMMAND_MODE": "off, fallback, hybrid, or primary.",
+    "OLLAMA_BASE_URL": "Base URL for local Ollama.",
+    "OLLAMA_MODEL": "Ollama model name.",
+    "OLLAMA_TIMEOUT_SECONDS": "LLM request timeout in seconds.",
+    "LLM_ACCEPT_THRESHOLD": "Minimum confidence accepted without confirmation.",
+    "LLM_CONFIDENCE_CAP": "Maximum confidence accepted from LLM.",
+    "LLM_USE_FULL_TEXT_ON_INCOMPLETE": "Use full utterance when parser is incomplete.",
+    "LLM_USE_PREVIOUS_COMMANDS": "Send parser results to LLM for completion.",
+    "ALLOW_DYNAMIC_SIZE_INCHES": "Allow arbitrary sizes inside configured range.",
+    "MIN_SIZE_INCHES": "Minimum dynamic size in inches.",
+    "MAX_SIZE_INCHES": "Maximum dynamic size in inches.",
+    "ALLOWED_SIZE_INCHES": "Comma-separated fixed sizes when dynamic sizes are off.",
+    "DEBUG_LLM_PROMPT": "Show prompt in debug only in development.",
 }
 ROLE_ORDER = {
     UserRole.VIEWER: 0,
@@ -201,6 +271,13 @@ def _render(
 
 def _get_dashboard_context() -> dict[str, Any]:
     semantic_enabled = get_bool_setting("ENABLE_SEMANTIC_MATCHER", ENABLE_SEMANTIC_MATCHER)
+    ollama_enabled = get_bool_setting("ENABLE_OLLAMA_FALLBACK", ENABLE_OLLAMA_FALLBACK)
+    llm_mode = get_str_setting("LLM_COMMAND_MODE", LLM_COMMAND_MODE)
+    ollama_model = get_str_setting("OLLAMA_MODEL", OLLAMA_MODEL)
+    dynamic_sizes_enabled = get_bool_setting(
+        "ALLOW_DYNAMIC_SIZE_INCHES",
+        ALLOW_DYNAMIC_SIZE_INCHES,
+    )
     transcription_model = get_str_setting(
         "TRANSCRIPTION_MODEL_NAME",
         TRANSCRIPTION_MODEL_NAME,
@@ -215,6 +292,10 @@ def _get_dashboard_context() -> dict[str, Any]:
             "catalog_dirty": False,
             "env": ENV,
             "semantic_enabled": semantic_enabled,
+            "llm_mode": llm_mode,
+            "ollama_enabled": ollama_enabled,
+            "ollama_model": ollama_model,
+            "dynamic_sizes_enabled": dynamic_sizes_enabled,
             "transcription_model": transcription_model,
         }
 
@@ -247,6 +328,10 @@ def _get_dashboard_context() -> dict[str, Any]:
         "catalog_dirty": catalog_dirty,
         "env": ENV,
         "semantic_enabled": semantic_enabled,
+        "llm_mode": llm_mode,
+        "ollama_enabled": ollama_enabled,
+        "ollama_model": ollama_model,
+        "dynamic_sizes_enabled": dynamic_sizes_enabled,
         "transcription_model": transcription_model,
     }
 
@@ -416,19 +501,26 @@ def _load_settings_context() -> dict[str, Any]:
     if SessionFactory is not None and engine is not None:
         with SessionFactory(engine) as session:
             for key, default in EDITABLE_SETTINGS.items():
-                if key in AUDIO_LIST_SETTINGS:
+                if key in LIST_SETTINGS:
                     settings[key] = ", ".join(get_audio_list_setting(key, default))
                 else:
                     settings[key] = get_runtime_setting(key, default)
             dirty = is_catalog_dirty(session)
-        return {"settings": settings, "catalog_dirty": dirty}
+        return {
+            "settings": settings,
+            "catalog_dirty": dirty,
+            "setting_descriptions": SETTING_DESCRIPTIONS,
+            "error": None,
+        }
 
     return {
         "settings": {
-            key: ", ".join(value) if key in AUDIO_LIST_SETTINGS else value
+            key: ", ".join(value) if key in LIST_SETTINGS else value
             for key, value in EDITABLE_SETTINGS.items()
         },
         "catalog_dirty": False,
+        "setting_descriptions": SETTING_DESCRIPTIONS,
+        "error": None,
     }
 
 
@@ -458,6 +550,49 @@ def _load_review_context(review_filter: str = "pending") -> dict[str, Any]:
         "review_filter": review_filter,
         "notice": None,
     }
+
+
+def _validate_llm_settings(settings: dict[str, str]) -> Optional[str]:
+    mode = settings.get("LLM_COMMAND_MODE", "").strip()
+    if mode not in {"off", "fallback", "hybrid", "primary"}:
+        return "LLM_COMMAND_MODE must be one of: off, fallback, hybrid, primary."
+
+    numeric_ranges = {
+        "OLLAMA_TIMEOUT_SECONDS": (1.0, 60.0),
+        "LLM_ACCEPT_THRESHOLD": (0.0, 1.0),
+        "LLM_CONFIDENCE_CAP": (0.0, 1.0),
+    }
+    for key, (minimum, maximum) in numeric_ranges.items():
+        try:
+            value = float(settings.get(key, ""))
+        except ValueError:
+            return f"{key} must be a number."
+        if not minimum <= value <= maximum:
+            return f"{key} must be between {minimum:g} and {maximum:g}."
+
+    try:
+        min_size = int(settings.get("MIN_SIZE_INCHES", ""))
+        max_size = int(settings.get("MAX_SIZE_INCHES", ""))
+    except ValueError:
+        return "MIN_SIZE_INCHES and MAX_SIZE_INCHES must be integers."
+    if min_size <= 0:
+        return "MIN_SIZE_INCHES must be greater than 0."
+    if max_size <= min_size:
+        return "MAX_SIZE_INCHES must be greater than MIN_SIZE_INCHES."
+
+    allowed_sizes = settings.get("ALLOWED_SIZE_INCHES", "")
+    try:
+        parsed_sizes = [
+            int(item.strip())
+            for item in allowed_sizes.split(",")
+            if item.strip()
+        ]
+    except ValueError:
+        return "ALLOWED_SIZE_INCHES must be a comma-separated list of integers."
+    if not parsed_sizes:
+        return "ALLOWED_SIZE_INCHES must include at least one size."
+
+    return None
 
 
 def _load_audio_logs_context() -> dict[str, Any]:
@@ -1032,30 +1167,53 @@ async def admin_settings_update(request: Request):
         return RedirectResponse(url="/admin/settings", status_code=status.HTTP_303_SEE_OTHER)
 
     form = await request.form()
+    new_values: dict[str, str] = {}
+    for key, default in EDITABLE_SETTINGS.items():
+        raw_value = form.get(key)
+        if isinstance(default, bool):
+            new_values[key] = "true" if raw_value in {"true", "on", "1", "yes"} else "false"
+        elif isinstance(default, list):
+            new_values[key] = (
+                ", ".join(
+                    [item.strip() for item in str(raw_value or "").split(",") if item.strip()]
+                )
+                if raw_value is not None
+                else ", ".join(str(item) for item in default)
+            )
+        elif raw_value is None:
+            new_values[key] = str(default)
+        else:
+            new_values[key] = str(raw_value).strip()
+
+    validation_error = _validate_llm_settings(new_values)
+    if validation_error is not None:
+        context = _load_settings_context()
+        context["settings"].update(new_values)
+        context["current_user"] = current_user
+        context["error"] = validation_error
+        return _render(
+            request,
+            "settings.html",
+            context,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     with SessionFactory(engine) as session:
         dirty_changed = False
         changed_keys: list[str] = []
         changed_audio_keys: list[str] = []
+        changed_llm_keys: list[str] = []
         audio_model_reload_required = False
+        llm_restart_required = False
+        llm_runtime_refresh_required = False
         for key, default in EDITABLE_SETTINGS.items():
-            raw_value = form.get(key)
-            if isinstance(default, bool):
-                new_value = "true" if raw_value in {"true", "on", "1", "yes"} else "false"
-            elif isinstance(default, list):
-                new_value = ", ".join(
-                    [item.strip() for item in str(raw_value or "").split(",") if item.strip()]
-                ) if raw_value is not None else ", ".join(default)
-            elif raw_value is None:
-                new_value = str(default)
-            else:
-                new_value = str(raw_value).strip()
+            new_value = new_values[key]
 
             setting = session.exec(select(AppSetting).where(AppSetting.key == key)).first()
             previous_value = (
                 setting.value
                 if setting is not None
-                else (", ".join(default) if isinstance(default, list) else str(default))
+                else (", ".join(str(item) for item in default) if isinstance(default, list) else str(default))
             )
             if setting is None:
                 setting = AppSetting(key=key, value=new_value)
@@ -1072,6 +1230,12 @@ async def admin_settings_update(request: Request):
                 changed_audio_keys.append(key)
             if key in AUDIO_MODEL_RELOAD_SETTINGS and str(previous_value) != str(new_value):
                 audio_model_reload_required = True
+            if key in LLM_SETTINGS_KEYS and str(previous_value) != str(new_value):
+                changed_llm_keys.append(key)
+            if key in LLM_RUNTIME_REFRESH_SETTINGS and str(previous_value) != str(new_value):
+                llm_runtime_refresh_required = True
+            if key in LLM_RESTART_REQUIRED_SETTINGS and str(previous_value) != str(new_value):
+                llm_restart_required = True
 
         if audio_model_reload_required:
             reload_setting = session.exec(
@@ -1102,6 +1266,18 @@ async def admin_settings_update(request: Request):
                 payload={
                     "keys": changed_audio_keys,
                     "model_reload_required": audio_model_reload_required,
+                },
+            )
+        if changed_llm_keys:
+            _audit_log(
+                session,
+                actor_user_id=getattr(current_user, "id", None),
+                action="llm_settings_update",
+                entity_type="app_setting",
+                payload={
+                    "keys": changed_llm_keys,
+                    "runtime_refresh_required": llm_runtime_refresh_required,
+                    "restart_required": llm_restart_required,
                 },
             )
 

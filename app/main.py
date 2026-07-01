@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +15,7 @@ from app.admin.router import router as admin_router
 from app.audio.router import router as audio_router
 from app.config import (
     ALLOWED_ORIGINS,
+    API_AUTH_TOKEN,
     ENABLE_SEMANTIC_MATCHER,
     ENV,
     MAX_TEXT_LENGTH,
@@ -47,6 +49,43 @@ def _configure_logging() -> None:
 _configure_logging()
 
 app = FastAPI(title="voice-command-api")
+
+
+def _extract_api_token(request: Request) -> str:
+    """Read API token from Authorization Bearer or X-API-Token."""
+
+    authorization = request.headers.get("authorization", "")
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() == "bearer" and token:
+        return token.strip()
+    return request.headers.get("x-api-token", "").strip()
+
+
+@app.middleware("http")
+async def require_api_token_for_v1(request: Request, call_next):
+    """Protect public API routes when API_AUTH_TOKEN is configured."""
+
+    if ENV == "production" and request.url.path in {
+        "/v1/commands/debug",
+        "/v1/commands/reload",
+    }:
+        return await call_next(request)
+
+    if request.url.path.startswith("/v1/") and ENV == "production" and not API_AUTH_TOKEN:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "API_AUTH_TOKEN must be configured in production."},
+        )
+
+    if (API_AUTH_TOKEN or ENV == "production") and request.url.path.startswith("/v1/"):
+        token = _extract_api_token(request)
+        if not token or not secrets.compare_digest(token, API_AUTH_TOKEN):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid or missing API token."},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    return await call_next(request)
 
 app.add_middleware(
     CORSMiddleware,

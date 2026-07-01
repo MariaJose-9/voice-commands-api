@@ -12,7 +12,6 @@ from sqlmodel import Session, select
 from app.config import (
     ADMIN_EMAIL,
     ADMIN_PASSWORD,
-    ENABLE_OLLAMA_FALLBACK,
     SEMANTIC_CONFIRMATION_THRESHOLD,
     SEMANTIC_THRESHOLD,
 )
@@ -432,8 +431,16 @@ def seed_default_settings(session: Session) -> dict:
         "SEMANTIC_THRESHOLD": str(SEMANTIC_THRESHOLD),
         "SEMANTIC_CONFIRMATION_THRESHOLD": str(SEMANTIC_CONFIRMATION_THRESHOLD),
         "ENABLE_SEMANTIC_MATCHER": "true",
-        "ENABLE_OLLAMA_FALLBACK": str(ENABLE_OLLAMA_FALLBACK).lower(),
+        "ENABLE_OLLAMA_FALLBACK": "true",
         "TRANSCRIPTION_MODEL_NAME": "base",
+        "LLM_COMMAND_MODE": "hybrid",
+        "OLLAMA_MODEL": "qwen2.5:3b",
+        "OLLAMA_TIMEOUT_SECONDS": "8",
+        "LLM_ACCEPT_THRESHOLD": "0.78",
+        "LLM_CONFIDENCE_CAP": "0.90",
+        "ALLOW_DYNAMIC_SIZE_INCHES": "true",
+        "MIN_SIZE_INCHES": "40",
+        "MAX_SIZE_INCHES": "150",
     }
     created = 0
 

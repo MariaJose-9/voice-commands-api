@@ -102,8 +102,17 @@ def test_seed_default_settings(sqlite_session: Session) -> None:
         setting.key: setting.value for setting in sqlite_session.exec(select(AppSetting)).all()
     }
     assert settings["ENABLE_SEMANTIC_MATCHER"] == "true"
+    assert settings["ENABLE_OLLAMA_FALLBACK"] == "true"
     assert settings["FUZZY_THRESHOLD"] == "86"
     assert settings["TRANSCRIPTION_MODEL_NAME"] == "base"
+    assert settings["LLM_COMMAND_MODE"] == "hybrid"
+    assert settings["OLLAMA_MODEL"] == "qwen2.5:3b"
+    assert settings["OLLAMA_TIMEOUT_SECONDS"] == "8"
+    assert settings["LLM_ACCEPT_THRESHOLD"] == "0.78"
+    assert settings["LLM_CONFIDENCE_CAP"] == "0.90"
+    assert settings["ALLOW_DYNAMIC_SIZE_INCHES"] == "true"
+    assert settings["MIN_SIZE_INCHES"] == "40"
+    assert settings["MAX_SIZE_INCHES"] == "150"
 
 
 def test_seed_default_settings_does_not_overwrite_existing(sqlite_session: Session) -> None:

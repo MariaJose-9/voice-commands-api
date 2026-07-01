@@ -11,6 +11,10 @@
       "value": "http://localhost:8000"
     },
     {
+      "key": "api_auth_token",
+      "value": ""
+    },
+    {
       "key": "language_hint",
       "value": "es"
     },
@@ -23,6 +27,16 @@
       "value": "sample.mp3"
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
       "name": "Health",

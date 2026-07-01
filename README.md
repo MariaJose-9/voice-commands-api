@@ -22,6 +22,8 @@ START_STREAM
 STOP_STREAM
 ```
 
+Guía rápida de consumo del endpoint principal: [USAGE.md](USAGE.md).
+
 ---
 
 ## Requisitos
@@ -88,6 +90,8 @@ Esto hace:
 * habilita transcripción de audio con `faster-whisper` usando `TRANSCRIPTION_MODEL_NAME=tiny`
 * monta caché persistente para modelos en `hf_cache`
 * monta temporales de audio en `audio_tmp`
+* apunta Ollama por defecto a `http://host.docker.internal:11434`
+* habilita `LLM_COMMAND_MODE=hybrid` sin bloquear el startup si Ollama no está disponible
 
 Probar:
 
@@ -121,6 +125,7 @@ Notas:
 
 * En `docker-compose.yml` el matcher semántico queda desactivado con `ENABLE_SEMANTIC_MATCHER=false` para un arranque inicial más rápido.
 * En Docker la transcripción de audio queda activa con `faster-whisper` y modelo `tiny`, para reducir tiempo de arranque y consumo en desarrollo.
+* Ollama es opcional. Si no está disponible, `/v1/commands/normalize` sigue funcionando con reglas, fuzzy y semantic matcher; simplemente no completa con LLM.
 * El `Dockerfile` usa por defecto `requirements-docker.txt`; ese archivo ya incluye `faster-whisper`.
 * No se fuerza `warmup` al startup. El modelo de audio se carga lazy cuando llamas `/v1/audio/transcribe`, `/v1/audio/normalize` o `/v1/audio/warmup`.
 * Si necesitas una imagen con el stack completo, puedes construirla con:
@@ -130,6 +135,41 @@ docker build --build-arg REQUIREMENTS_FILE=requirements.txt -t voice-command-api
 ```
 
 * La ejecución local sin Docker sigue funcionando igual con `uvicorn`.
+
+---
+
+## Docker Compose con Ollama opcional
+
+Por defecto, el servicio `api` usa:
+
+```bash
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=qwen2.5:3b
+ENABLE_OLLAMA_FALLBACK=true
+LLM_COMMAND_MODE=hybrid
+```
+
+Esto está pensado para Docker Desktop con Ollama corriendo en tu máquina host:
+
+```bash
+ollama pull qwen2.5:3b
+ollama serve
+docker compose up --build
+```
+
+También puedes levantar Ollama como contenedor opcional:
+
+```bash
+docker compose --profile ollama up
+```
+
+Luego descarga el modelo dentro del servicio:
+
+```bash
+docker compose --profile ollama exec ollama ollama pull qwen2.5:3b
+```
+
+El build no descarga modelos de Ollama. Si Ollama no está levantado o no tiene el modelo, el API no se cae: el normalizador devuelve el resultado base de reglas/fuzzy/semantic y omite la completación con LLM.
 
 ---
 
@@ -300,6 +340,7 @@ Antes de una prueba real o despliegue:
 * `python -m app.db.seed` ejecutado.
 * `python -m app.db.publish_initial_catalog` ejecutado.
 * `Active Version` visible en admin.
+* `API_AUTH_TOKEN` configurado con un token largo y secreto.
 * `ENABLE_SEMANTIC_MATCHER=true` configurado si se requiere prueba real flexible.
 * `/v1/audio/status` responde con modelo y límites correctos.
 * Modelo `base` descargado o `POST /v1/audio/warmup` ejecutado.
@@ -315,6 +356,7 @@ Puedes crear un archivo `.env` o definir las variables directamente en la termin
 ```bash
 ENV=development
 ALLOWED_ORIGINS=*
+API_AUTH_TOKEN=
 DATABASE_URL=mysql+pymysql://voice_user:voice_password@localhost:3306/voice_command_api?charset=utf8mb4
 ADMIN_SESSION_SECRET=change-me-in-production
 ADMIN_COOKIE_NAME=voice_admin_session
@@ -361,6 +403,7 @@ Para producción:
 ```bash
 ENV=production
 ALLOWED_ORIGINS=https://example.com,https://app.example.com
+API_AUTH_TOKEN=replace-with-a-long-random-token
 DATABASE_URL=mysql+pymysql://voice_user:voice_password@localhost:3306/voice_command_api?charset=utf8mb4
 ADMIN_SESSION_SECRET=change-me-in-production
 ADMIN_COOKIE_NAME=voice_admin_session
@@ -373,6 +416,147 @@ MAX_TEXT_LENGTH=500
 Nota:
 
 La primera llamada que use el matcher semántico puede demorar porque `sentence-transformers` puede descargar el modelo en el primer uso.
+
+---
+
+### API authentication token
+
+`API_AUTH_TOKEN` protege los endpoints públicos bajo `/v1/*`. En `development` puede quedar vacío para pruebas locales. En `production` es obligatorio: si `ENV=production` y no configuras `API_AUTH_TOKEN`, las rutas `/v1/*` responden `503` y no procesan requests.
+
+Si configuras:
+
+```bash
+API_AUTH_TOKEN=replace-with-a-long-random-token
+```
+
+Las rutas `/v1/commands/*` y `/v1/audio/*` requieren uno de estos headers:
+
+```http
+Authorization: Bearer replace-with-a-long-random-token
+```
+
+o:
+
+```http
+X-API-Token: replace-with-a-long-random-token
+```
+
+Ejemplo:
+
+```bash
+curl -X POST http://localhost:8000/v1/commands/normalize \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer replace-with-a-long-random-token" \
+  -d '{"text":"monitor 1","language_hint":"es"}'
+```
+
+`/`, `/health`, `/health/db` y el panel `/admin` no usan este token. El panel mantiene autenticación con cookie firmada y CSRF.
+
+---
+
+## LLM Command Interpreter
+
+El parser por reglas es rápido y estable, pero puede quedarse corto cuando una frase natural contiene una intención que las reglas no cubrieron por completo. Ejemplo:
+
+```text
+Redimensiona a 72 pulgadas el monitor 1
+```
+
+El parser base puede detectar solo:
+
+```json
+{"command": "SELECT_MONITOR", "monitor": 1}
+```
+
+El modo híbrido permite que una LLM local complete el resultado con:
+
+```json
+{"command": "SET_SIZE", "size_inches": 72}
+```
+
+### Completeness checker
+
+Antes de llamar a la LLM, el API evalúa si el resultado base está completo. Detecta señales como:
+
+* tamaño exacto sin `SET_SIZE`.
+* intención de grande/pequeño sin `INCREASE_SIZE` o `DECREASE_SIZE`.
+* dirección izquierda/derecha/arriba/abajo sin `MOVE_*`.
+* comando `UNKNOWN`.
+* baja cobertura de `raw_fragment`, cuando partes importantes del texto no fueron explicadas por los comandos detectados.
+
+### Modos
+
+`LLM_COMMAND_MODE` controla cuándo se usa la LLM:
+
+* `off`: nunca usa LLM.
+* `fallback`: usa LLM solo si reglas, fuzzy y semantic no resolvieron o requieren confirmación.
+* `hybrid`: usa reglas primero y llama LLM si el resultado parece incompleto. Es el modo recomendado.
+* `primary`: intenta LLM primero y deja reglas como validación/fallback.
+
+### Ollama
+
+Instala y levanta Ollama localmente:
+
+```bash
+ollama serve
+ollama pull qwen2.5:3b
+```
+
+Variables principales:
+
+```bash
+ENABLE_OLLAMA_FALLBACK=true
+LLM_COMMAND_MODE=hybrid
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen2.5:3b
+OLLAMA_TIMEOUT_SECONDS=8
+LLM_ACCEPT_THRESHOLD=0.78
+LLM_CONFIDENCE_CAP=0.90
+ALLOW_DYNAMIC_SIZE_INCHES=true
+MIN_SIZE_INCHES=40
+MAX_SIZE_INCHES=150
+```
+
+En Docker Compose, el API apunta por defecto a `http://host.docker.internal:11434` para usar Ollama instalado en el host. También existe un profile opcional `ollama` si prefieres correrlo como contenedor.
+
+### Ejemplo
+
+```bash
+curl -X POST http://localhost:8000/v1/commands/normalize \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Redimensiona a 72 pulgadas el monitor 1","language_hint":"es"}'
+```
+
+Respuesta esperada, resumida:
+
+```json
+{
+  "commands": [
+    {"command": "SELECT_MONITOR", "monitor": 1},
+    {"command": "SET_SIZE", "size_inches": 72}
+  ]
+}
+```
+
+### Troubleshooting
+
+* Si Ollama está apagado, el API sigue funcionando con reglas/fuzzy/semantic y omite la completación LLM.
+* Si el modelo no está descargado, ejecuta `ollama pull qwen2.5:3b`.
+* Si hay timeouts, sube `OLLAMA_TIMEOUT_SECONDS`.
+* Si no se llama LLM, revisa `LLM_COMMAND_MODE`; `off` nunca llama LLM.
+* Si no se llama LLM, revisa `ENABLE_OLLAMA_FALLBACK`; debe ser `true` salvo en modo `primary`.
+* Si un tamaño no se acepta, revisa `ALLOW_DYNAMIC_SIZE_INCHES`, `MIN_SIZE_INCHES` y `MAX_SIZE_INCHES`.
+* Usa `POST /v1/commands/debug` en development para ver `completeness` y decisión LLM.
+
+### Seguridad
+
+La LLM propone comandos, pero el API valida la salida antes de aceptarla:
+
+* No acepta comandos fuera de `CommandName`.
+* No acepta monitores fuera de `1` o `2`.
+* No acepta layouts fuera de `1` o `2`.
+* No acepta tamaños fuera del rango configurado.
+* No ejecuta texto libre generado por la LLM.
 
 ---
 
@@ -1522,6 +1706,7 @@ Recomendaciones para producción:
 * Usar `ENV=production`.
 * Ocultar `/v1/commands/debug`.
 * Definir `ALLOWED_ORIGINS` con dominios reales.
+* Definir `API_AUTH_TOKEN`; en producción es obligatorio para `/v1/*`.
 * Mantener `MAX_TEXT_LENGTH` bajo, por ejemplo `500`.
 * Mantener `ENABLE_OLLAMA_FALLBACK=false` salvo que realmente se necesite.
 * Guardar logs de comandos no reconocidos para mejorar `catalog.yml`.

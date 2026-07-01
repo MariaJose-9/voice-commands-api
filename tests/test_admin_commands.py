@@ -431,6 +431,108 @@ def test_admin_settings_page_shows_audio_fields(client_with_sqlite) -> None:
     assert "TRANSCRIPTION_MODEL_NAME" in response.text
     assert "MAX_AUDIO_FILE_MB" in response.text
     assert "ALLOWED_AUDIO_MIME_TYPES" in response.text
+    assert "LLM_COMMAND_MODE" in response.text
+    assert "OLLAMA_MODEL" in response.text
+    assert "ALLOW_DYNAMIC_SIZE_INCHES" in response.text
+
+
+def test_admin_settings_update_saves_llm_command_mode(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+
+    response = client.post(
+        "/admin/settings/update",
+        data={
+            "LLM_COMMAND_MODE": "hybrid",
+            "OLLAMA_BASE_URL": "http://localhost:11434",
+            "OLLAMA_MODEL": "qwen2.5:3b",
+            "OLLAMA_TIMEOUT_SECONDS": "8",
+            "LLM_ACCEPT_THRESHOLD": "0.78",
+            "LLM_CONFIDENCE_CAP": "0.90",
+            "MIN_SIZE_INCHES": "40",
+            "MAX_SIZE_INCHES": "150",
+            "ALLOWED_SIZE_INCHES": "55,65,72,120",
+            "ENABLE_OLLAMA_FALLBACK": "on",
+            "ALLOW_DYNAMIC_SIZE_INCHES": "on",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    with Session(engine) as session:
+        mode = session.exec(
+            select(AppSetting).where(AppSetting.key == "LLM_COMMAND_MODE")
+        ).first()
+        audit = session.exec(
+            select(AuditLog).where(AuditLog.action == "llm_settings_update")
+        ).first()
+        assert mode is not None
+        assert mode.value == "hybrid"
+        assert audit is not None
+        assert audit.payload_json["runtime_refresh_required"] is True
+
+
+def test_admin_settings_update_rejects_invalid_llm_mode(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+
+    response = client.post(
+        "/admin/settings/update",
+        data={
+            "LLM_COMMAND_MODE": "invalid",
+            "OLLAMA_TIMEOUT_SECONDS": "8",
+            "LLM_ACCEPT_THRESHOLD": "0.78",
+            "LLM_CONFIDENCE_CAP": "0.90",
+            "MIN_SIZE_INCHES": "40",
+            "MAX_SIZE_INCHES": "150",
+            "ALLOWED_SIZE_INCHES": "55,65",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 400
+    assert "LLM_COMMAND_MODE must be one of" in response.text
+    with Session(engine) as session:
+        mode = session.exec(
+            select(AppSetting).where(AppSetting.key == "LLM_COMMAND_MODE")
+        ).first()
+        assert mode is None
+
+
+def test_admin_settings_update_saves_dynamic_size_settings(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+
+    response = client.post(
+        "/admin/settings/update",
+        data={
+            "LLM_COMMAND_MODE": "fallback",
+            "OLLAMA_TIMEOUT_SECONDS": "8",
+            "LLM_ACCEPT_THRESHOLD": "0.78",
+            "LLM_CONFIDENCE_CAP": "0.90",
+            "MIN_SIZE_INCHES": "42",
+            "MAX_SIZE_INCHES": "160",
+            "ALLOWED_SIZE_INCHES": "55, 72, 100",
+            "ALLOW_DYNAMIC_SIZE_INCHES": "on",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    with Session(engine) as session:
+        dynamic = session.exec(
+            select(AppSetting).where(AppSetting.key == "ALLOW_DYNAMIC_SIZE_INCHES")
+        ).first()
+        min_size = session.exec(
+            select(AppSetting).where(AppSetting.key == "MIN_SIZE_INCHES")
+        ).first()
+        max_size = session.exec(
+            select(AppSetting).where(AppSetting.key == "MAX_SIZE_INCHES")
+        ).first()
+        allowed = session.exec(
+            select(AppSetting).where(AppSetting.key == "ALLOWED_SIZE_INCHES")
+        ).first()
+        assert dynamic is not None and dynamic.value == "true"
+        assert min_size is not None and min_size.value == "42"
+        assert max_size is not None and max_size.value == "160"
+        assert allowed is not None and allowed.value == "55, 72, 100"
 
 
 def test_admin_audio_tester_invalid_file_shows_controlled_error(

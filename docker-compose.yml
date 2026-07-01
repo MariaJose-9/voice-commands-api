@@ -29,8 +29,17 @@ services:
       DATABASE_URL: mysql+pymysql://voice_user:voice_password@mysql:3306/voice_command_api?charset=utf8mb4
       ENV: development
       ALLOWED_ORIGINS: "*"
+      API_AUTH_TOKEN: "UU75xrlDeV6up7wyYdOMxhhMsUTP03G6WJaGdh5aQcMOo70p8ykKDLDxOpRy5MjE"
       ENABLE_SEMANTIC_MATCHER: "false"
       FUZZY_THRESHOLD: "88"
+      ENABLE_OLLAMA_FALLBACK: "true"
+      LLM_COMMAND_MODE: hybrid
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:3b
+      OLLAMA_TIMEOUT_SECONDS: "8"
+      ALLOW_DYNAMIC_SIZE_INCHES: "true"
+      MIN_SIZE_INCHES: "40"
+      MAX_SIZE_INCHES: "150"
       ENABLE_AUDIO_TRANSCRIPTION: "true"
       TRANSCRIPTION_ENGINE: faster_whisper
       TRANSCRIPTION_MODEL_NAME: tiny
@@ -42,6 +51,8 @@ services:
       ALLOWED_AUDIO_EXTENSIONS: .ogg,.mp3,.m4a
       ADMIN_EMAIL: admin@example.com
       ADMIN_PASSWORD: admin123
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8000:8000"
     volumes:
@@ -53,7 +64,17 @@ services:
       python -m app.db.publish_initial_catalog &&
       uvicorn app.main:app --host 0.0.0.0 --port 8000"
 
+  ollama:
+    image: ollama/ollama
+    profiles:
+      - ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
   mysql_data:
   hf_cache:
   audio_tmp:
+  ollama_data:

@@ -56,7 +56,7 @@ def test_ollama_fallback_returns_normalized_response(monkeypatch) -> None:
     assert response.needs_confirmation is True
     assert response.commands[0].command == CommandName.START_STREAM
     assert response.commands[0].method == MatchMethod.llm
-    assert response.commands[0].confidence == 0.70
+    assert response.commands[0].confidence == 0.80
 
 
 def test_ollama_fallback_ignores_invalid_json(monkeypatch) -> None:

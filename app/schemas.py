@@ -126,6 +126,12 @@ class NormalizedCommand(BaseModel):
         if self.command == CommandName.SET_SIZE:
             if self.size_inches is None or self.size_inches <= 0:
                 raise ValueError("SET_SIZE requires a positive size_inches value.")
+            from app.services.size_validation_service import is_valid_size_inches
+
+            if not is_valid_size_inches(self.size_inches):
+                raise ValueError(
+                    "SET_SIZE size_inches is outside the configured allowed range."
+                )
 
         if self.command == CommandName.SELECT_MONITOR:
             if self.monitor not in ALLOWED_MONITORS:

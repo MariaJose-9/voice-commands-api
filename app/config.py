@@ -61,6 +61,7 @@ ALLOWED_ORIGINS = _get_list(
     "ALLOWED_ORIGINS",
     ["*"] if ENV != "production" else [],
 )
+API_AUTH_TOKEN = os.getenv("API_AUTH_TOKEN", "")
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "mysql+pymysql://voice_user:voice_password@localhost:3306/voice_command_api?charset=utf8mb4",
@@ -75,6 +76,21 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@example.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+LLM_COMMAND_MODE = os.getenv("LLM_COMMAND_MODE", "fallback")
+OLLAMA_TIMEOUT_SECONDS = _get_float("OLLAMA_TIMEOUT_SECONDS", 8.0)
+LLM_ACCEPT_THRESHOLD = _get_float("LLM_ACCEPT_THRESHOLD", 0.78)
+LLM_CONFIDENCE_CAP = _get_float("LLM_CONFIDENCE_CAP", 0.90)
+LLM_USE_FULL_TEXT_ON_INCOMPLETE = _get_bool("LLM_USE_FULL_TEXT_ON_INCOMPLETE", True)
+LLM_USE_PREVIOUS_COMMANDS = _get_bool("LLM_USE_PREVIOUS_COMMANDS", True)
+DEBUG_LLM_PROMPT = _get_bool("DEBUG_LLM_PROMPT", False)
+ALLOW_DYNAMIC_SIZE_INCHES = _get_bool("ALLOW_DYNAMIC_SIZE_INCHES", True)
+MIN_SIZE_INCHES = _get_int("MIN_SIZE_INCHES", 40)
+MAX_SIZE_INCHES = _get_int("MAX_SIZE_INCHES", 150)
+ALLOWED_SIZE_INCHES = [
+    int(item)
+    for item in _get_list("ALLOWED_SIZE_INCHES", ["55", "65", "75", "95", "120"])
+    if item.isdigit()
+]
 SEMANTIC_MODEL_NAME = os.getenv(
     "SEMANTIC_MODEL_NAME",
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
