@@ -342,3 +342,91 @@ def test_previous_commands_are_included_in_prompt() -> None:
     assert "previous_commands" in prompt
     assert "SELECT_MONITOR" in prompt
     assert "explicit_size_intent_missing_set_size" in prompt
+
+
+def test_llm_set_size_with_monitor_is_canonicalized(monkeypatch) -> None:
+    response = ollama_fallback.parse_llm_response(
+        {
+            "ok": True,
+            "commands": [
+                {
+                    "command": "SET_SIZE",
+                    "monitor": 2,
+                    "size_inches": 75,
+                    "confidence": 0.9,
+                    "raw_fragment": "monitor 2 en 75 pulgadas",
+                }
+            ],
+            "needs_confirmation": False,
+            "message": None,
+        },
+        raw_text="Necesito que el monitor 2 este en 75 pulgadas",
+        normalized_text="necesito que el monitor 2 este en 75 pulgadas",
+        language_hint="es",
+    )
+
+    assert response is not None
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.SET_SIZE,
+    ]
+    assert response.commands[0].monitor == 2
+    assert response.commands[0].method == MatchMethod.llm
+    assert response.commands[1].monitor is None
+    assert response.commands[1].size_inches == 75
+
+
+def test_llm_prompt_includes_monitor_target_canonicalization_rule() -> None:
+    prompt = ollama_fallback.build_llm_command_prompt(
+        raw_text="Necesito que el monitor 2 este en 75 pulgadas",
+        normalized_text="necesito que el monitor 2 este en 75 pulgadas",
+    )
+
+    assert "Do not attach monitor to SET_SIZE" in prompt
+    assert "SELECT_MONITOR" in prompt
+    assert "Necesito que el monitor 2 este en 75 pulgadas" in prompt
+    assert '"SET_SIZE","monitor":2,"size_inches":75' in prompt
+
+
+def test_llm_canonicalization_does_not_duplicate_existing_select_monitor() -> None:
+    response = ollama_fallback.parse_llm_response(
+        {
+            "ok": True,
+            "commands": [
+                {
+                    "command": "SELECT_MONITOR",
+                    "monitor": 2,
+                    "confidence": 0.95,
+                    "raw_fragment": "monitor 2",
+                },
+                {
+                    "command": "SET_SIZE",
+                    "monitor": 2,
+                    "size_inches": 75,
+                    "confidence": 0.9,
+                    "raw_fragment": "75 pulgadas",
+                },
+            ],
+            "needs_confirmation": False,
+            "message": None,
+        },
+        raw_text="Necesito que el monitor 2 este en 75 pulgadas",
+        normalized_text="necesito que el monitor 2 este en 75 pulgadas",
+        language_hint="es",
+    )
+
+    assert response is not None
+    assert [command.command for command in response.commands] == [
+        CommandName.SELECT_MONITOR,
+        CommandName.SET_SIZE,
+    ]
+    assert len(
+        [
+            command
+            for command in response.commands
+            if command.command == CommandName.SELECT_MONITOR
+        ]
+    ) == 1
+    assert response.commands[0].monitor == 2
+    assert response.commands[1].monitor is None
+    assert response.commands[1].size_inches == 75

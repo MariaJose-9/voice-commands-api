@@ -493,6 +493,113 @@ Antes de llamar a la LLM, el API evalúa si el resultado base está completo. De
 * `hybrid`: usa reglas primero y llama LLM si el resultado parece incompleto. Es el modo recomendado.
 * `primary`: intenta LLM primero y deja reglas como validación/fallback.
 
+### LLM completeness, canonicalization and deduplication
+
+El parser base puede resolver una frase completa sin ayuda de LLM:
+
+```text
+Necesito que el monitor 2 esté en 75 pulgadas
+```
+
+Resultado esperado:
+
+```json
+{
+  "commands": [
+    {"command": "SELECT_MONITOR", "monitor": 2},
+    {"command": "SET_SIZE", "size_inches": 75}
+  ]
+}
+```
+
+En ese caso `completeness.is_complete=true` y no se llama LLM.
+
+Si el parser base queda incompleto, el completeness checker sí puede activar la LLM. Ejemplo:
+
+```text
+Redimensiona a 72 pulgadas el monitor 1
+```
+
+Si el parser base solo detecta:
+
+```json
+{"command": "SELECT_MONITOR", "monitor": 1}
+```
+
+Entonces `completeness.should_call_llm=true` con razón `explicit_size_intent_missing_set_size`, y la LLM puede completar:
+
+```json
+{"command": "SET_SIZE", "size_inches": 72}
+```
+
+La LLM puede devolver comandos con monitor embebido, por ejemplo:
+
+```json
+{"command": "SET_SIZE", "monitor": 2, "size_inches": 75}
+```
+
+El sistema canonicaliza esa salida a la forma compatible con la app:
+
+```json
+[
+  {"command": "SELECT_MONITOR", "monitor": 2},
+  {"command": "SET_SIZE", "size_inches": 75}
+]
+```
+
+Después se deduplican comandos por significado. Si `entity_rule` y `llm` detectan el mismo `SET_SIZE 75`, se conserva `entity_rule` porque viene de extracción determinística.
+
+Prioridad de método:
+
+```text
+entity_rule > exact_rule > llm > semantic > fuzzy
+```
+
+Si hay conflicto, no se resuelve silenciosamente. Por ejemplo, si `entity_rule` detecta `SET_SIZE 75` pero la LLM propone `SET_SIZE 72`, el sistema conserva el resultado más confiable y marca:
+
+```json
+{
+  "needs_confirmation": true,
+  "message": "Conflicting SET_SIZE commands detected: 72, 75"
+}
+```
+
+Para revisar una decisión completa usa `/v1/commands/debug` en development:
+
+```bash
+curl -X POST http://localhost:8000/v1/commands/debug \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Necesito que el monitor 2 esté en 75 pulgadas","language_hint":"es"}'
+```
+
+Campos útiles del debug:
+
+* `completeness`: indica si el resultado base está completo y qué intención quedó sin cubrir.
+* `llm`: indica modo, si debía llamarse, si fue llamada y la razón.
+* `merge`: muestra deduplicación, comandos removidos y conflictos.
+* `merge.conflicts`: lista conflictos como tamaños distintos, monitores distintos o movimientos opuestos.
+
+Ejemplo esperado para la frase completa:
+
+```json
+{
+  "completeness": {
+    "is_complete": true
+  },
+  "llm": {
+    "mode": "hybrid",
+    "should_call": false,
+    "called": false,
+    "reason": null
+  },
+  "merge": {
+    "deduplicated": true,
+    "duplicates_removed": [],
+    "conflicts": []
+  }
+}
+```
+
 ### Ollama
 
 Instala y levanta Ollama localmente:

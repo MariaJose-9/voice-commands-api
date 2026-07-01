@@ -108,8 +108,7 @@ def test_hybrid_calls_llm_when_base_missing_set_size(monkeypatch) -> None:
             kwargs["raw_text"],
             kwargs["normalized_text"],
             [
-                _command(CommandName.SELECT_MONITOR, monitor=1),
-                _command(CommandName.SET_SIZE, size_inches=72),
+                _command(CommandName.SET_SIZE, monitor=1, size_inches=72),
             ],
         )
 
@@ -126,6 +125,7 @@ def test_hybrid_calls_llm_when_base_missing_set_size(monkeypatch) -> None:
     ]
     assert response.commands[0].monitor == 1
     assert response.commands[1].size_inches == 72
+    assert response.commands[1].monitor is None
 
 
 def test_monitor_only_does_not_call_llm_in_hybrid(monkeypatch) -> None:

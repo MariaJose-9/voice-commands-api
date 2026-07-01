@@ -24,7 +24,13 @@ from app.preprocessor import normalize_text
 from app.rule_matcher import match_by_rules
 from app.schemas import CommandName, NormalizeRequest
 from app.semantic_matcher import get_semantic_candidates, match_by_semantic
-from app.services.command_merge_service import merge_command_results
+from app.services.command_canonicalization_service import canonicalize_commands
+from app.services.command_dedup_service import get_command_semantic_key
+from app.services.command_merge_service import (
+    deduplicate_commands_semantically,
+    detect_command_conflicts,
+    merge_command_results,
+)
 from app.services.completeness_checker import (
     check_command_completeness,
     get_uncovered_text,
@@ -56,9 +62,58 @@ def _llm_should_call(mode: str, enabled: bool, base_response, completeness) -> t
             return True, "fallback_condition"
         if completeness.should_call_llm:
             return True, completeness.reason
-        if completeness.coverage_score < 0.55:
-            return True, "low_coverage"
     return False, None
+
+
+def _method_name(command) -> str:
+    return command.method.value if hasattr(command.method, "value") else str(command.method)
+
+
+def _build_merge_debug(commands) -> dict[str, Any]:
+    deduplicated_commands = deduplicate_commands_semantically(commands)
+    kept_by_key = {
+        get_command_semantic_key(command): command
+        for command in deduplicated_commands
+    }
+    grouped: dict[tuple, list] = {}
+    for command in commands:
+        grouped.setdefault(get_command_semantic_key(command), []).append(command)
+
+    duplicates_removed = []
+    for semantic_key, grouped_commands in grouped.items():
+        if len(grouped_commands) <= 1:
+            continue
+
+        kept_command = kept_by_key.get(semantic_key)
+        kept_index = next(
+            (
+                index
+                for index, command in enumerate(grouped_commands)
+                if command is kept_command
+            ),
+            0,
+        )
+        removed_methods = [
+            _method_name(command)
+            for index, command in enumerate(grouped_commands)
+            if index != kept_index
+        ]
+        if not removed_methods:
+            continue
+
+        duplicates_removed.append(
+            {
+                "semantic_key": list(semantic_key),
+                "kept_method": _method_name(grouped_commands[kept_index]),
+                "removed_methods": removed_methods,
+            }
+        )
+
+    return {
+        "deduplicated": True,
+        "duplicates_removed": duplicates_removed,
+        "conflicts": detect_command_conflicts(commands),
+    }
 
 
 def build_debug_response(payload: NormalizeRequest) -> dict[str, Any]:
@@ -170,6 +225,8 @@ def build_debug_response(payload: NormalizeRequest) -> dict[str, Any]:
             previous_commands=base_response.commands,
             completeness_reason=completeness.reason,
         )
+    if llm_response is not None:
+        llm_response.commands = canonicalize_commands(llm_response.commands)
     llm_payload = {
         "mode": llm_mode,
         "enabled": bool(llm_enabled or llm_mode == "primary"),
@@ -184,10 +241,18 @@ def build_debug_response(payload: NormalizeRequest) -> dict[str, Any]:
         "merged": False,
     }
     if llm_response is not None:
-        merged = merge_command_results(base_response, llm_response)
+        merged = merge_command_results(
+            base_response,
+            llm_response,
+            normalized_text=normalized_text,
+            raw_text=payload.text,
+        )
         llm_payload["merged"] = (
             merged.model_dump(mode="json") != base_response.model_dump(mode="json")
         )
+    merge_payload = _build_merge_debug(
+        base_response.commands + (llm_response.commands if llm_response else [])
+    )
     if ENV == "development" and DEBUG_LLM_PROMPT:
         llm_payload["prompt"] = build_llm_command_prompt(
             raw_text=payload.text,
@@ -207,5 +272,6 @@ def build_debug_response(payload: NormalizeRequest) -> dict[str, Any]:
         "semantic_candidates": semantic_candidates,
         "completeness": completeness_payload,
         "llm": llm_payload,
+        "merge": merge_payload,
         "final_response": final_response.model_dump(mode="json"),
     }

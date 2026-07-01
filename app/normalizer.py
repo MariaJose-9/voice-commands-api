@@ -22,7 +22,11 @@ from app.preprocessor import normalize_text
 from app.rule_matcher import match_by_rules
 from app.schemas import CommandName, MatchMethod, NormalizeResponse, NormalizedCommand
 from app.semantic_matcher import match_by_semantic
-from app.services.command_merge_service import merge_command_results
+from app.services.command_canonicalization_service import canonicalize_commands
+from app.services.command_merge_service import (
+    deduplicate_commands_semantically,
+    merge_command_results,
+)
 from app.services.completeness_checker import check_command_completeness
 
 
@@ -111,8 +115,8 @@ def _should_call_llm(
     *,
     mode: str,
     base_response: NormalizeResponse,
+    completeness_is_complete: bool,
     completeness_should_call_llm: bool,
-    coverage_score: float,
 ) -> tuple[bool, Optional[str]]:
     if mode == "off":
         return False, "LLM skipped"
@@ -132,12 +136,12 @@ def _should_call_llm(
         )
 
     if mode == "hybrid":
+        if completeness_is_complete:
+            return False, "LLM skipped"
         if fallback_condition:
             return True, "LLM used: fallback_condition"
         if completeness_should_call_llm:
             return True, "LLM used: incomplete_result"
-        if coverage_score < 0.55:
-            return True, "LLM used: low_coverage"
         return False, "LLM skipped"
 
     return (
@@ -167,6 +171,40 @@ def _call_llm_interpreter(
         )
     except Exception:
         return None
+
+
+def _with_commands(
+    response: NormalizeResponse,
+    commands: list[NormalizedCommand],
+    *,
+    message: Optional[str] = None,
+) -> NormalizeResponse:
+    """Return a copy of a response with an updated command list."""
+
+    return NormalizeResponse(
+        ok=all(command.command != CommandName.UNKNOWN for command in commands),
+        raw_text=response.raw_text,
+        normalized_text=response.normalized_text,
+        language=response.language,
+        commands=commands,
+        needs_confirmation=response.needs_confirmation,
+        message=response.message if message is None else message,
+    )
+
+
+def _clean_base_response(response: NormalizeResponse) -> NormalizeResponse:
+    """Deduplicate parser output before returning it without LLM help."""
+
+    commands = deduplicate_commands_semantically(response.commands)
+    return _with_commands(response, commands)
+
+
+def _canonicalize_llm_response(
+    response: NormalizeResponse,
+) -> NormalizeResponse:
+    """Canonicalize monitor-scoped LLM commands before merging."""
+
+    return _with_commands(response, canonicalize_commands(response.commands))
 
 
 def normalize_command_text(
@@ -244,6 +282,7 @@ def normalize_command_text(
             completeness_reason="primary",
         )
         if llm_response is not None:
+            llm_response = _canonicalize_llm_response(llm_response)
             return merge_command_results(
                 _build_base_response(
                     raw_text=raw_text,
@@ -254,6 +293,8 @@ def normalize_command_text(
                     message="LLM used: primary",
                 ),
                 llm_response,
+                normalized_text=normalized_text,
+                raw_text=raw_text,
             )
 
     fragments = split_into_fragments(normalized_text)
@@ -295,13 +336,16 @@ def normalize_command_text(
     should_call_llm, llm_message = _should_call_llm(
         mode=llm_command_mode,
         base_response=base_response,
+        completeness_is_complete=completeness.is_complete,
         completeness_should_call_llm=completeness.should_call_llm,
-        coverage_score=completeness.coverage_score,
     )
 
     if not should_call_llm:
-        base_response.message = llm_message if base_response.message is None else base_response.message
-        return base_response
+        cleaned_response = _clean_base_response(base_response)
+        cleaned_response.message = (
+            llm_message if cleaned_response.message is None else cleaned_response.message
+        )
+        return cleaned_response
 
     llm_response = _call_llm_interpreter(
         raw_text=raw_text,
@@ -319,10 +363,17 @@ def normalize_command_text(
         )
 
     if llm_response is None:
-        base_response.message = "LLM failed, returned base parser result"
-        return base_response
+        cleaned_response = _clean_base_response(base_response)
+        cleaned_response.message = "LLM failed, returned base parser result"
+        return cleaned_response
 
-    merged_response = merge_command_results(base_response, llm_response)
+    llm_response = _canonicalize_llm_response(llm_response)
+    merged_response = merge_command_results(
+        base_response,
+        llm_response,
+        normalized_text=normalized_text,
+        raw_text=raw_text,
+    )
     if merged_response.message == "Completed with LLM" and llm_message:
         merged_response.message = f"{llm_message}; Completed with LLM"
     elif merged_response.message is None:
