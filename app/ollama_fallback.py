@@ -125,6 +125,10 @@ def build_llm_command_prompt(
         "- If the user says grande/bigger/larger without a number => INCREASE_SIZE.\n"
         "- If the user says pequeno/chico/reduce/smaller without a number => DECREASE_SIZE.\n"
         "- izquierda/derecha/arriba/abajo/left/right/up/down map to MOVE_* commands.\n"
+        "- aleja, alejar, alejalo, aleja lo, move away, zoom out mean ZOOM_OUT, not MOVE_LEFT, MOVE_RIGHT, MOVE_UP or MOVE_DOWN.\n"
+        "- acerca, acercar, acercalo, bring closer, zoom in mean ZOOM_IN, not movement.\n"
+        "- Distance units like 1 metro, 2 metros, 50 centimetros after aleja/acerca describe zoom distance or intensity. They must not create MOVE_* commands.\n"
+        "- Only use MOVE_LEFT, MOVE_RIGHT, MOVE_UP or MOVE_DOWN when the user explicitly says izquierda, derecha, arriba, abajo, left, right, up or down.\n"
         "- For 'Redimensiona a 72 pulgadas el monitor 1', return SELECT_MONITOR monitor=1 and SET_SIZE size_inches=72.\n"
         "- If a command targets a monitor, return SELECT_MONITOR first. Do not attach monitor to SET_SIZE, MOVE_LEFT, MOVE_RIGHT, ZOOM_IN, ZOOM_OUT, INCREASE_SIZE or DECREASE_SIZE when SELECT_MONITOR can represent the target.\n"
         '- For input "Necesito que el monitor 2 este en 75 pulgadas", expected response is {"commands":[{"command":"SELECT_MONITOR","monitor":2},{"command":"SET_SIZE","size_inches":75}]}. Do not return {"command":"SET_SIZE","monitor":2,"size_inches":75}.\n'

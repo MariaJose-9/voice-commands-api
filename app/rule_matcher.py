@@ -111,11 +111,26 @@ _EXACT_RULES: list[tuple[CommandName, list[str]]] = [
 _PRE_RELATIVE_RULES: list[tuple[CommandName, list[str]]] = [
     (
         CommandName.ZOOM_IN,
-        ["zoom in", "acercar", "haz zoom", "aumenta el zoom"],
+        [
+            "zoom in",
+            "acerca",
+            "acercar",
+            "acercalo",
+            "haz zoom",
+            "aumenta el zoom",
+        ],
     ),
     (
         CommandName.ZOOM_OUT,
-        ["zoom out", "alejar", "quitar zoom", "quita zoom", "reduce el zoom"],
+        [
+            "zoom out",
+            "aleja",
+            "alejar",
+            "alejalo",
+            "quitar zoom",
+            "quita zoom",
+            "reduce el zoom",
+        ],
     ),
 ]
 
@@ -176,6 +191,11 @@ _SUPPRESSION_RULES: dict[CommandName, set[CommandName]] = {
         CommandName.MOVE_DOWN,
     },
 }
+
+_ZOOM_DISTANCE_PATTERN = re.compile(
+    r"\b(?:(?:\d+|one|two)\s+(?:metros?|meters?)|"
+    r"(?:\d+|fifty)\s+centimetros?)\b"
+)
 
 
 def _find_fragment(text: str, aliases: list[str]) -> Optional[str]:
@@ -243,6 +263,23 @@ def _exact_command(command: CommandName, raw_fragment: str) -> NormalizedCommand
     )
 
 
+def _zoom_command(
+    command: CommandName,
+    raw_fragment: str,
+    normalized_text: str,
+) -> NormalizedCommand:
+    """Create a zoom command with an optional distance/intensity value."""
+
+    distance_match = _ZOOM_DISTANCE_PATTERN.search(normalized_text)
+    return NormalizedCommand(
+        command=command,
+        confidence=1.0,
+        method=MatchMethod.exact_rule,
+        raw_fragment=raw_fragment,
+        value=distance_match.group(0) if distance_match else None,
+    )
+
+
 def match_by_rules(normalized_text: str, entities: dict) -> list[NormalizedCommand]:
     """Match commands using ordered deterministic rules."""
 
@@ -255,7 +292,11 @@ def match_by_rules(normalized_text: str, entities: dict) -> list[NormalizedComma
         if not fragment:
             continue
 
-        _append_command(commands, seen, _exact_command(command_name, fragment))
+        if command_name in {CommandName.ZOOM_IN, CommandName.ZOOM_OUT}:
+            command = _zoom_command(command_name, fragment, normalized_text)
+        else:
+            command = _exact_command(command_name, fragment)
+        _append_command(commands, seen, command)
         suppressed.update(_SUPPRESSION_RULES.get(command_name, set()))
 
     monitor = entities.get("monitor")
@@ -299,7 +340,11 @@ def match_by_rules(normalized_text: str, entities: dict) -> list[NormalizedComma
         if not fragment:
             continue
 
-        _append_command(commands, seen, _exact_command(command_name, fragment))
+        if command_name in {CommandName.ZOOM_IN, CommandName.ZOOM_OUT}:
+            command = _zoom_command(command_name, fragment, normalized_text)
+        else:
+            command = _exact_command(command_name, fragment)
+        _append_command(commands, seen, command)
 
     for command_name, patterns in _RELATIVE_SIZE_RULES:
         if command_name in suppressed or command_name in seen:

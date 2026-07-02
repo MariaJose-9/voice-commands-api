@@ -34,6 +34,13 @@ _FILLER_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bun\s+poquito\b"), ""),
     (re.compile(r"\bun\s+poco\b"), ""),
 )
+_QUANTITY_UNIT_PATTERN = re.compile(
+    r"^(?:(?:\d+|one|two)\s+(?:metros?|meters?)|"
+    r"(?:\d+|fifty)\s+centimetros?)$"
+)
+_ZOOM_FRAGMENT_PATTERN = re.compile(
+    r"\b(aleja|alejar|alejalo|acerca|acercar|acercalo|zoom\s+in|zoom\s+out)\b"
+)
 _SUPPRESSION_RULES: dict[CommandName, set[CommandName]] = {
     CommandName.STOP_STREAM: {CommandName.STOP_ACTIVE},
     CommandName.STOP_FOLLOW_ME: {CommandName.FOLLOW_ME},
@@ -68,8 +75,15 @@ def split_into_fragments(normalized_text: str) -> list[str]:
             cleaned = cleaned.replace(placeholder, phrase)
 
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
-        if cleaned:
-            fragments.append(cleaned)
+        if not cleaned:
+            continue
+
+        if _QUANTITY_UNIT_PATTERN.fullmatch(cleaned):
+            if fragments and _ZOOM_FRAGMENT_PATTERN.search(fragments[-1]):
+                fragments[-1] = f"{fragments[-1]} {cleaned}".strip()
+            continue
+
+        fragments.append(cleaned)
 
     return fragments
 

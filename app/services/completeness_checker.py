@@ -75,7 +75,9 @@ _DIRECTION_PATTERNS = {
     CommandName.MOVE_UP: re.compile(r"\b(arriba|up)\b"),
     CommandName.MOVE_DOWN: re.compile(r"\b(abajo|down)\b"),
 }
-_ZOOM_INTENT_PATTERN = re.compile(r"\b(zoom|acercar|acercalo|alejar|alejalo)\b")
+_ZOOM_INTENT_PATTERN = re.compile(
+    r"\b(zoom|acerca|acercar|acercalo|aleja|alejar|alejalo)\b"
+)
 _LAYOUT_INTENT_PATTERN = re.compile(
     r"\b(layout|vista|diseno|diseño)\s*(1|2|uno|dos)?\b"
 )
@@ -162,7 +164,15 @@ _INTENT_WORDS = {
         "lleva",
         "desplaza",
     },
-    "zoom": {"zoom", "acercar", "acercalo", "alejar", "alejalo"},
+    "zoom": {
+        "zoom",
+        "acerca",
+        "acercar",
+        "acercalo",
+        "aleja",
+        "alejar",
+        "alejalo",
+    },
     "layout": {"layout", "vista", "diseno", "diseño"},
     "ui": {
         "aitrol",

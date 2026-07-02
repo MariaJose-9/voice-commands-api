@@ -23,3 +23,11 @@ def test_corrects_dereca() -> None:
 
 def test_corrects_coja() -> None:
     assert apply_asr_corrections("coja la pantalla una") == "selecciona la pantalla una"
+
+
+def test_corrects_split_aleja() -> None:
+    assert apply_asr_corrections("a leja el monitor 2") == "aleja el monitor 2"
+
+
+def test_corrects_split_acerca() -> None:
+    assert apply_asr_corrections("a cerca el monitor uno") == "acerca el monitor uno"

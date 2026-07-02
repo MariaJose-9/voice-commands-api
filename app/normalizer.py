@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 import app.services.runtime_settings_service as runtime_settings_service
@@ -28,6 +29,19 @@ from app.services.command_merge_service import (
     merge_command_results,
 )
 from app.services.completeness_checker import check_command_completeness
+
+
+_MOVEMENT_COMMANDS = {
+    CommandName.MOVE_LEFT,
+    CommandName.MOVE_RIGHT,
+    CommandName.MOVE_UP,
+    CommandName.MOVE_DOWN,
+}
+_ZOOM_OUT_INTENT_PATTERN = re.compile(r"\b(aleja|alejar|alejalo|zoom\s+out)\b")
+_ZOOM_IN_INTENT_PATTERN = re.compile(r"\b(acerca|acercar|acercalo|zoom\s+in)\b")
+_DIRECTION_INTENT_PATTERN = re.compile(
+    r"\b(izquierda|derecha|arriba|abajo|left|right|up|down)\b"
+)
 
 
 def _unknown_command(raw_fragment: str) -> NormalizedCommand:
@@ -207,6 +221,62 @@ def _canonicalize_llm_response(
     return _with_commands(response, canonicalize_commands(response.commands))
 
 
+def _zoom_guardrail_command(
+    command_name: CommandName,
+    normalized_text: str,
+) -> NormalizedCommand:
+    return NormalizedCommand(
+        command=command_name,
+        confidence=0.90,
+        method=MatchMethod.exact_rule,
+        raw_fragment="zoom out" if command_name == CommandName.ZOOM_OUT else "zoom in",
+        value=_extract_zoom_distance(normalized_text),
+    )
+
+
+def _extract_zoom_distance(normalized_text: str) -> Optional[str]:
+    match = re.search(
+        r"\b(?:(?:\d+|one|two)\s+(?:metros?|meters?)|"
+        r"(?:\d+|fifty)\s+centimetros?)\b",
+        normalized_text,
+    )
+    return match.group(0) if match else None
+
+
+def _apply_zoom_movement_guardrail(
+    response: NormalizeResponse,
+) -> NormalizeResponse:
+    """Replace LLM-invented movement with zoom when no direction was spoken."""
+
+    normalized_text = response.normalized_text
+    has_direction = bool(_DIRECTION_INTENT_PATTERN.search(normalized_text))
+    if has_direction:
+        return response
+
+    zoom_command: Optional[CommandName] = None
+    if _ZOOM_OUT_INTENT_PATTERN.search(normalized_text):
+        zoom_command = CommandName.ZOOM_OUT
+    elif _ZOOM_IN_INTENT_PATTERN.search(normalized_text):
+        zoom_command = CommandName.ZOOM_IN
+
+    if zoom_command is None:
+        return response
+
+    commands = [
+        command
+        for command in response.commands
+        if command.command not in _MOVEMENT_COMMANDS
+    ]
+    if not any(command.command == zoom_command for command in commands):
+        commands.append(_zoom_guardrail_command(zoom_command, normalized_text))
+
+    return _with_commands(
+        response,
+        deduplicate_commands_semantically(commands),
+        message=response.message,
+    )
+
+
 def normalize_command_text(
     text: str,
     language_hint: Optional[str] = None,
@@ -283,7 +353,7 @@ def normalize_command_text(
         )
         if llm_response is not None:
             llm_response = _canonicalize_llm_response(llm_response)
-            return merge_command_results(
+            merged_response = merge_command_results(
                 _build_base_response(
                     raw_text=raw_text,
                     normalized_text=normalized_text,
@@ -296,6 +366,7 @@ def normalize_command_text(
                 normalized_text=normalized_text,
                 raw_text=raw_text,
             )
+            return _apply_zoom_movement_guardrail(merged_response)
 
     fragments = split_into_fragments(normalized_text)
     commands: list[NormalizedCommand] = []
@@ -345,7 +416,7 @@ def normalize_command_text(
         cleaned_response.message = (
             llm_message if cleaned_response.message is None else cleaned_response.message
         )
-        return cleaned_response
+        return _apply_zoom_movement_guardrail(cleaned_response)
 
     llm_response = _call_llm_interpreter(
         raw_text=raw_text,
@@ -365,7 +436,7 @@ def normalize_command_text(
     if llm_response is None:
         cleaned_response = _clean_base_response(base_response)
         cleaned_response.message = "LLM failed, returned base parser result"
-        return cleaned_response
+        return _apply_zoom_movement_guardrail(cleaned_response)
 
     llm_response = _canonicalize_llm_response(llm_response)
     merged_response = merge_command_results(
@@ -378,4 +449,4 @@ def normalize_command_text(
         merged_response.message = f"{llm_message}; Completed with LLM"
     elif merged_response.message is None:
         merged_response.message = llm_message
-    return merged_response
+    return _apply_zoom_movement_guardrail(merged_response)
