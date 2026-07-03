@@ -34,7 +34,7 @@ services:
       FUZZY_THRESHOLD: "88"
       ENABLE_OLLAMA_FALLBACK: "true"
       LLM_COMMAND_MODE: hybrid
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: qwen2.5:3b
       OLLAMA_TIMEOUT_SECONDS: "8"
       ALLOW_DYNAMIC_SIZE_INCHES: "true"
@@ -68,8 +68,9 @@ services:
     image: ollama/ollama
     profiles:
       - ollama
-    ports:
-      - "11434:11434"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     volumes:
       - ollama_data:/root/.ollama
 

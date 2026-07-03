@@ -64,6 +64,7 @@ Ejemplo:
 
 ```bash
 curl -X POST http://localhost:8000/v1/audio/normalize \
+  -H "Authorization: Bearer your-secret-token" \
   -F "file=@sample.mp3" \
   -F "language_hint=es"
 ```
@@ -185,7 +186,8 @@ El sistema puede guardar logs de metadata/transcripción si `ENABLE_AUDIO_TRANSC
 ## Probar Estado De Audio
 
 ```bash
-curl http://localhost:8000/v1/audio/status
+curl http://localhost:8000/v1/audio/status \
+  -H "Authorization: Bearer your-secret-token"
 ```
 
 Con token en producción:
@@ -200,7 +202,8 @@ curl http://localhost:8000/v1/audio/status \
 El modelo se carga lazy en la primera llamada. Para cargarlo manualmente:
 
 ```bash
-curl -X POST http://localhost:8000/v1/audio/warmup
+curl -X POST http://localhost:8000/v1/audio/warmup \
+  -H "Authorization: Bearer your-secret-token"
 ```
 
 Con token:

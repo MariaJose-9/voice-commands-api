@@ -98,8 +98,12 @@ Probar:
 ```bash
 curl http://localhost:8000/health
 curl http://localhost:8000/health/db
-curl http://localhost:8000/v1/audio/status
+API_TOKEN="UU75xrlDeV6up7wyYdOMxhhMsUTP03G6WJaGdh5aQcMOo70p8ykKDLDxOpRy5MjE"
+curl http://localhost:8000/v1/audio/status \
+  -H "Authorization: Bearer ${API_TOKEN}"
 ```
+
+Ese token es el valor de desarrollo definido en `docker-compose.yml`. Cámbialo antes de exponer el API.
 
 Panel admin:
 
@@ -160,7 +164,7 @@ docker compose up --build
 También puedes levantar Ollama como contenedor opcional:
 
 ```bash
-docker compose --profile ollama up
+docker compose --profile ollama up -d
 ```
 
 Luego descarga el modelo dentro del servicio:
@@ -219,7 +223,9 @@ El compose ejecuta migraciones, seed, publicación inicial del catálogo y arran
 ```bash
 curl http://localhost:8000/health
 curl http://localhost:8000/health/db
-curl http://localhost:8000/v1/audio/status
+API_TOKEN="UU75xrlDeV6up7wyYdOMxhhMsUTP03G6WJaGdh5aQcMOo70p8ykKDLDxOpRy5MjE"
+curl http://localhost:8000/v1/audio/status \
+  -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
 En `/v1/audio/status` revisa:
@@ -234,6 +240,7 @@ En `/v1/audio/status` revisa:
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"pantalla 2 mueve la la derecha y luego las es en el tamaño de 55 puladas","language_hint":"es"}'
 ```
 
@@ -249,6 +256,7 @@ SET_SIZE size_inches=55
 
 ```bash
 curl -X POST http://localhost:8000/v1/audio/normalize \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -F "file=@sample.mp3" \
   -F "language_hint=es"
 ```
@@ -569,6 +577,7 @@ Para revisar una decisión completa usa `/v1/commands/debug` en development:
 ```bash
 curl -X POST http://localhost:8000/v1/commands/debug \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"Necesito que el monitor 2 esté en 75 pulgadas","language_hint":"es"}'
 ```
 
@@ -631,6 +640,7 @@ En Docker Compose, el API apunta por defecto a `http://host.docker.internal:1143
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"Redimensiona a 72 pulgadas el monitor 1","language_hint":"es"}'
 ```
 
@@ -743,7 +753,8 @@ POST /v1/audio/normalize
 ### Ejemplo `status`
 
 ```bash
-curl http://localhost:8000/v1/audio/status
+curl http://localhost:8000/v1/audio/status \
+  -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
 Campos relevantes:
@@ -757,6 +768,7 @@ Campos relevantes:
 
 ```bash
 curl -X POST http://localhost:8000/v1/audio/transcribe \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -F "file=@sample.m4a" \
   -F "language_hint=es"
 ```
@@ -786,6 +798,7 @@ Respuesta de ejemplo:
 
 ```bash
 curl -X POST http://localhost:8000/v1/audio/normalize \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -F "file=@sample.ogg" \
   -F "language_hint=es" \
   -F 'context_json={"selected_monitor":null}'
@@ -885,7 +898,8 @@ Flujo esperado:
 
 ```bash
 docker compose up --build
-curl http://localhost:8000/v1/audio/status
+curl http://localhost:8000/v1/audio/status \
+  -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
 El modelo de transcripción no se precarga al startup. Se carga la primera vez que uses:
@@ -906,13 +920,15 @@ Si la parte de audio no responde como esperas, revisa esto:
 * Revisa el estado efectivo con:
 
 ```bash
-curl http://localhost:8000/v1/audio/status
+curl http://localhost:8000/v1/audio/status \
+  -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
 * Si quieres cargar manualmente el modelo antes de la primera transcripción, usa:
 
 ```bash
-curl -X POST http://localhost:8000/v1/audio/warmup
+curl -X POST http://localhost:8000/v1/audio/warmup \
+  -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
 * No actives warmup automático si el servidor tiene poca RAM; es mejor mantener lazy loading.
@@ -1076,6 +1092,7 @@ Ejemplo:
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"monitor two and zoom in","language_hint":"en"}'
 ```
 
@@ -1123,12 +1140,14 @@ Respuesta esperada:
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"monitor one"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"selecciona monitor dos"}'
 ```
 
@@ -1139,12 +1158,14 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"left"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"mueve el monitor a la derecha"}'
 ```
 
@@ -1155,18 +1176,21 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"zoom in"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"acercalo"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"zoom out"}'
 ```
 
@@ -1177,24 +1201,28 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"increase"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"hazlo más grande"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"decrease"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"ponlo en 65 pulgadas"}'
 ```
 
@@ -1205,12 +1233,14 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"layout one"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"layout dos"}'
 ```
 
@@ -1221,24 +1251,28 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"follow me"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"stop follow me"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"recenter objects"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"reset position"}'
 ```
 
@@ -1249,30 +1283,35 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"show aitrol"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"close aitrol"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"show voice commands"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"close voice commands"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"settings"}'
 ```
 
@@ -1283,30 +1322,35 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"capture"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"stream"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"record"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"stop stream"}'
 ```
 
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"stop"}'
 ```
 
@@ -1317,6 +1361,7 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"monitor two, move left and make it 65 inches"}'
 ```
 
@@ -1609,6 +1654,7 @@ El endpoint de debug ayuda a inspeccionar fragmentos, entidades, matches por reg
 ```bash
 curl -X POST http://localhost:8000/v1/commands/debug \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"monitor two and zoom in"}'
 ```
 
@@ -1625,7 +1671,8 @@ En producción se oculta automáticamente.
 # Warmup del matcher semántico
 
 ```bash
-curl -X POST http://localhost:8000/v1/commands/warmup
+curl -X POST http://localhost:8000/v1/commands/warmup \
+  -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
 Este comando carga el modelo semántico antes de recibir comandos reales.
@@ -1866,6 +1913,7 @@ Y probar manualmente:
 ```bash
 curl -X POST http://localhost:8000/v1/commands/normalize \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
   -d '{"text":"ponlo como pantalla grande"}'
 ```
 

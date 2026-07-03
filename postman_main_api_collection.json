@@ -1,0 +1,68 @@
+{
+  "info": {
+    "name": "Voice Command API - Main Endpoint",
+    "description": "Coleccion minima para probar el endpoint principal: audio de voz a comandos canonicos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_token",
+      "value": "replace-with-your-api-token",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Voice audio to commands",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "language_hint",
+              "value": "es",
+              "type": "text"
+            },
+            {
+              "key": "context_json",
+              "value": "{\"selected_monitor\":null}",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/audio/normalize",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "audio",
+            "normalize"
+          ]
+        },
+        "description": "Sube un archivo .ogg, .mp3 o .m4a. El API transcribe el audio y devuelve comandos canonicos."
+      },
+      "response": []
+    }
+  ]
+}
