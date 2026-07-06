@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "Voice Command API - Text To Commands",
+    "description": "Coleccion minima para probar el endpoint de texto transcrito a comandos canonicos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://voice-api.mdc-server.com ",
+      "type": "string"
+    },
+    {
+      "key": "api_token",
+      "value": "UU75xrlDeV6up7wyYdOMxhhMsUTP03G6WJaGdh5aQcMOo70p8ykKDLDxOpRy5MjE",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Text to commands",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{api_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Redimensiona a 72 pulgadas el monitor 1\",\n  \"language_hint\": \"es\",\n  \"context\": {}\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/v1/commands/normalize",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "v1",
+            "commands",
+            "normalize"
+          ]
+        },
+        "description": "Recibe texto libre ya transcrito y devuelve comandos canonicos estructurados."
+      },
+      "response": []
+    }
+  ]
+}

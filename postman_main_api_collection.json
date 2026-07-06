@@ -7,12 +7,12 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:8000",
+      "value": "https://voice-api.mdc-server.com ",
       "type": "string"
     },
     {
       "key": "api_token",
-      "value": "replace-with-your-api-token",
+      "value": "UU75xrlDeV6up7wyYdOMxhhMsUTP03G6WJaGdh5aQcMOo70p8ykKDLDxOpRy5MjE",
       "type": "string"
     }
   ],
