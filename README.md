@@ -385,8 +385,8 @@ TRANSCRIPTION_VAD_FILTER=false
 TRANSCRIPTION_LANGUAGE_DEFAULT=
 MAX_AUDIO_FILE_MB=10
 MAX_AUDIO_DURATION_SECONDS=30
-ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3,.m4a
-ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,application/octet-stream
+ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3,.m4a,.mp4,.wav,.webm,.aac,.flac
+ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/webm,audio/aac,audio/flac,video/mp4,video/webm,application/octet-stream
 AUDIO_TEMP_DIR=/tmp/voice-command-audio
 AUDIO_MODEL_WARMUP_ON_STARTUP=false
 FUZZY_THRESHOLD=88
@@ -710,7 +710,7 @@ Notas prácticas:
 
 ## Audio transcription
 
-El API puede recibir archivos `.ogg`, `.mp3` o `.m4a`.
+El API puede recibir formatos comunes de audio y contenedores con audio: `.ogg`, `.mp3`, `.m4a`, `.mp4`, `.wav`, `.webm`, `.aac` y `.flac`.
 
 La transcripción usa `faster-whisper` de forma local/offline y carga el modelo de manera lazy: no se descarga ni se inicializa hasta que llamas un endpoint de audio o haces warmup manual.
 
@@ -735,8 +735,8 @@ TRANSCRIPTION_VAD_FILTER=false
 TRANSCRIPTION_LANGUAGE_DEFAULT=
 MAX_AUDIO_FILE_MB=10
 MAX_AUDIO_DURATION_SECONDS=30
-ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3,.m4a
-ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,application/octet-stream
+ALLOWED_AUDIO_EXTENSIONS=.ogg,.mp3,.m4a,.mp4,.wav,.webm,.aac,.flac
+ALLOWED_AUDIO_MIME_TYPES=audio/ogg,audio/mpeg,audio/mp3,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/webm,audio/aac,audio/flac,video/mp4,video/webm,application/octet-stream
 AUDIO_TEMP_DIR=/tmp/voice-command-audio
 ENABLE_AUDIO_TRANSCRIPTION_LOGS=true
 ```

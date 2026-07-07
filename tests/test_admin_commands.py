@@ -542,7 +542,7 @@ def test_admin_audio_tester_invalid_file_shows_controlled_error(
     client, _engine = client_with_sqlite
 
     def raise_error(upload_file, language_hint=None):
-        raise ValueError("Unsupported audio file extension: .wav")
+        raise ValueError("Unsupported audio file extension: .exe")
 
     monkeypatch.setattr(
         admin_router_module,
@@ -552,12 +552,12 @@ def test_admin_audio_tester_invalid_file_shows_controlled_error(
 
     response = client.post(
         "/admin/audio-tester/transcribe",
-        files={"file": ("sample.wav", b"fake-audio", "audio/wav")},
+        files={"file": ("sample.exe", b"fake-audio", "application/octet-stream")},
         follow_redirects=True,
     )
 
     assert response.status_code == 400
-    assert "Unsupported audio file extension: .wav" in response.text
+    assert "Unsupported audio file extension: .exe" in response.text
 
 
 def test_admin_audio_tester_normalize_uses_mocked_audio_flow(

@@ -11,7 +11,7 @@ POST /v1/audio/normalize
 Este endpoint hace todo el flujo:
 
 ```text
-audio .ogg/.mp3/.m4a
+audio .ogg/.mp3/.m4a/.mp4/.wav/.webm/.aac/.flac
   -> transcripción local
   -> normalización de comandos
   -> JSON con comandos canónicos
@@ -56,7 +56,7 @@ El endpoint recibe `multipart/form-data`.
 
 Campos:
 
-* `file`: requerido. Archivo de audio `.ogg`, `.mp3` o `.m4a`.
+* `file`: requerido. Archivo de audio `.ogg`, `.mp3`, `.m4a`, `.mp4`, `.wav`, `.webm`, `.aac` o `.flac`.
 * `language_hint`: opcional. Ejemplo: `es`, `en`.
 * `context_json`: opcional. JSON string con contexto del cliente.
 
@@ -168,6 +168,11 @@ Permitidos por defecto:
 .ogg
 .mp3
 .m4a
+.mp4
+.wav
+.webm
+.aac
+.flac
 ```
 
 Límites por defecto:

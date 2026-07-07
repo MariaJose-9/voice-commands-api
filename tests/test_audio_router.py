@@ -79,7 +79,7 @@ def test_audio_transcribe_missing_file_returns_422() -> None:
 def test_audio_transcribe_invalid_extension_returns_400() -> None:
     response = client.post(
         "/v1/audio/transcribe",
-        files={"file": ("sample.wav", b"fake-audio", "audio/wav")},
+        files={"file": ("sample.exe", b"fake-audio", "application/octet-stream")},
     )
     assert response.status_code == 400
     assert "Unsupported audio file extension" in response.json()["detail"]

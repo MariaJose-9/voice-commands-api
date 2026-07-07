@@ -106,7 +106,7 @@ MAX_AUDIO_FILE_MB = _get_int("MAX_AUDIO_FILE_MB", 10)
 MAX_AUDIO_DURATION_SECONDS = _get_int("MAX_AUDIO_DURATION_SECONDS", 30)
 ALLOWED_AUDIO_EXTENSIONS = _get_list(
     "ALLOWED_AUDIO_EXTENSIONS",
-    [".ogg", ".mp3", ".m4a"],
+    [".ogg", ".mp3", ".m4a", ".mp4", ".wav", ".webm", ".aac", ".flac"],
 )
 ALLOWED_AUDIO_MIME_TYPES = _get_list(
     "ALLOWED_AUDIO_MIME_TYPES",
@@ -116,6 +116,13 @@ ALLOWED_AUDIO_MIME_TYPES = _get_list(
         "audio/mp3",
         "audio/mp4",
         "audio/x-m4a",
+        "audio/wav",
+        "audio/x-wav",
+        "audio/webm",
+        "audio/aac",
+        "audio/flac",
+        "video/mp4",
+        "video/webm",
         "application/octet-stream",
     ],
 )

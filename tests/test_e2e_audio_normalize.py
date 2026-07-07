@@ -127,7 +127,7 @@ def test_e2e_audio_normalize_critical_transcriptions(
 def test_e2e_audio_normalize_invalid_extension_returns_400() -> None:
     response = client.post(
         "/v1/audio/normalize",
-        files={"file": ("sample.wav", b"fake-audio", "audio/wav")},
+        files={"file": ("sample.exe", b"fake-audio", "application/octet-stream")},
         data={"language_hint": "es"},
     )
 

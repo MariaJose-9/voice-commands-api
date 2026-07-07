@@ -39,7 +39,11 @@ def test_save_upload_file_to_temp_and_cleanup(tmp_path, monkeypatch) -> None:
 
 def test_save_upload_file_rejects_invalid_extension(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(temp_files, "AUDIO_TEMP_DIR", str(tmp_path))
-    upload_file = _make_upload_file("sample.wav", b"fake-audio-data", content_type="audio/wav")
+    upload_file = _make_upload_file(
+        "sample.exe",
+        b"fake-audio-data",
+        content_type="application/octet-stream",
+    )
 
     with pytest.raises(ValueError, match="Unsupported audio file extension"):
         temp_files.save_upload_file_to_temp(upload_file)

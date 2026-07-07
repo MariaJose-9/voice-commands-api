@@ -23,9 +23,16 @@ def test_validate_audio_filename_accepts_m4a() -> None:
     assert validate_audio_filename("file.m4a") == ".m4a"
 
 
-def test_validate_audio_filename_rejects_wav() -> None:
-    with pytest.raises(ValueError, match="Unsupported audio file extension"):
-        validate_audio_filename("file.wav")
+def test_validate_audio_filename_accepts_mp4() -> None:
+    assert validate_audio_filename("file.mp4") == ".mp4"
+
+
+def test_validate_audio_filename_accepts_wav() -> None:
+    assert validate_audio_filename("file.wav") == ".wav"
+
+
+def test_validate_audio_filename_accepts_webm() -> None:
+    assert validate_audio_filename("file.webm") == ".webm"
 
 
 def test_validate_audio_filename_rejects_exe() -> None:
@@ -47,6 +54,18 @@ def test_validate_audio_content_type_accepts_audio_mp4_for_m4a() -> None:
 
 def test_validate_audio_content_type_accepts_audio_x_m4a() -> None:
     validate_audio_content_type("audio/x-m4a", ".m4a")
+
+
+def test_validate_audio_content_type_accepts_video_mp4_for_mp4() -> None:
+    validate_audio_content_type("video/mp4", ".mp4")
+
+
+def test_validate_audio_content_type_accepts_audio_wav() -> None:
+    validate_audio_content_type("audio/wav", ".wav")
+
+
+def test_validate_audio_content_type_accepts_audio_webm() -> None:
+    validate_audio_content_type("audio/webm", ".webm")
 
 
 def test_validate_audio_content_type_accepts_octet_stream_for_valid_extension() -> None:
@@ -71,4 +90,9 @@ def test_is_allowed_audio_extension() -> None:
     assert is_allowed_audio_extension(".ogg") is True
     assert is_allowed_audio_extension(".mp3") is True
     assert is_allowed_audio_extension(".m4a") is True
-    assert is_allowed_audio_extension(".wav") is False
+    assert is_allowed_audio_extension(".mp4") is True
+    assert is_allowed_audio_extension(".wav") is True
+    assert is_allowed_audio_extension(".webm") is True
+    assert is_allowed_audio_extension(".aac") is True
+    assert is_allowed_audio_extension(".flac") is True
+    assert is_allowed_audio_extension(".exe") is False
