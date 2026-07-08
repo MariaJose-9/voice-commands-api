@@ -24,7 +24,11 @@
     },
     {
       "key": "audio_file_path",
-      "value": "sample.mp3"
+      "value": "sample.mp4"
+    },
+    {
+      "key": "allowed_audio_extensions",
+      "value": ".ogg,.mp3,.m4a,.mp4,.wav,.webm,.aac,.flac"
     }
   ],
   "auth": {
@@ -270,7 +274,8 @@
                 "audio",
                 "status"
               ]
-            }
+            },
+            "description": "Returns audio transcription settings, including allowed_extensions. Current allowed formats: {{allowed_audio_extensions}}."
           }
         },
         {
@@ -289,7 +294,7 @@
                 "warmup"
               ]
             },
-            "description": "Loads the configured faster-whisper model. First run may download the model."
+            "description": "Loads the configured faster-whisper model. First run may download the model. Audio uploads accept: {{allowed_audio_extensions}}."
           }
         },
         {
@@ -322,7 +327,8 @@
                 "audio",
                 "transcribe"
               ]
-            }
+            },
+            "description": "Transcribes an uploaded file. Supported extensions: {{allowed_audio_extensions}}. For .mp4/.webm/mobile containers, the service can convert to WAV mono 16 kHz with ffmpeg and retry if direct decoding fails."
           }
         },
         {
@@ -360,7 +366,8 @@
                 "audio",
                 "normalize"
               ]
-            }
+            },
+            "description": "Main endpoint: uploads audio, transcribes it, then normalizes text into commands. Supported extensions: {{allowed_audio_extensions}}. For .mp4/.webm/mobile containers, the service can convert to WAV mono 16 kHz with ffmpeg and retry if direct decoding fails."
           }
         }
       ]

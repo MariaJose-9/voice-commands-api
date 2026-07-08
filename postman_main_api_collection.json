@@ -7,12 +7,17 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://voice-api.mdc-server.com ",
+      "value": "https://voice-api.mdc-server.com",
       "type": "string"
     },
     {
       "key": "api_token",
       "value": "UU75xrlDeV6up7wyYdOMxhhMsUTP03G6WJaGdh5aQcMOo70p8ykKDLDxOpRy5MjE",
+      "type": "string"
+    },
+    {
+      "key": "allowed_audio_extensions",
+      "value": ".ogg,.mp3,.m4a,.mp4,.wav,.webm,.aac,.flac",
       "type": "string"
     }
   ],
@@ -60,7 +65,7 @@
             "normalize"
           ]
         },
-        "description": "Sube un archivo .ogg, .mp3 o .m4a. El API transcribe el audio y devuelve comandos canonicos."
+        "description": "Sube un archivo de audio en formato permitido: .ogg, .mp3, .m4a, .mp4, .wav, .webm, .aac o .flac. El API transcribe el audio y devuelve comandos canonicos. Si el decodificador directo falla, el servicio intenta convertir internamente a WAV mono 16 kHz con ffmpeg y reintenta la transcripcion."
       },
       "response": []
     }

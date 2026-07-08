@@ -142,6 +142,79 @@ def test_transcribe_audio_file_passes_language_hint(monkeypatch, tmp_path) -> No
     assert _FakeWhisperModel.transcribe_calls[-1]["language"] == "es"
 
 
+def test_transcribe_audio_file_converts_to_wav_when_direct_decode_fails(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    class _DecodeFailsUntilWavModel(_FakeWhisperModel):
+        def transcribe(self, file_path: str, *, beam_size: int, language, vad_filter: bool):
+            type(self).transcribe_calls.append(
+                {
+                    "file_path": file_path,
+                    "beam_size": beam_size,
+                    "language": language,
+                    "vad_filter": vad_filter,
+                }
+            )
+            if not file_path.endswith(".wav"):
+                raise RuntimeError("invalid mp4 codec")
+            segments = [SimpleNamespace(start=0.0, end=1.0, text="monitor one")]
+            info = SimpleNamespace(language="en", duration=1.0)
+            return segments, info
+
+    def fake_run(command, check, capture_output, text, timeout):
+        output_path = Path(command[-1])
+        output_path.write_bytes(b"fake-wav")
+        return SimpleNamespace(returncode=0, stderr="")
+
+    fake_module = SimpleNamespace(WhisperModel=_DecodeFailsUntilWavModel)
+    monkeypatch.setitem(sys.modules, "faster_whisper", fake_module)
+    monkeypatch.setattr(
+        "app.audio.providers.faster_whisper_provider.subprocess.run",
+        fake_run,
+    )
+    _reset_service_state(monkeypatch)
+    monkeypatch.setattr(transcription_service, "ENABLE_AUDIO_TRANSCRIPTION", True)
+    monkeypatch.setattr(transcription_service, "TRANSCRIPTION_ENGINE", "faster_whisper")
+    audio_path = tmp_path / "sample.mp4"
+    audio_path.write_bytes(b"fake-mp4")
+
+    response = transcription_service.transcribe_audio_file(audio_path)
+
+    assert response.text == "monitor one"
+    calls = _DecodeFailsUntilWavModel.transcribe_calls
+    assert calls[0]["file_path"].endswith("sample.mp4")
+    assert calls[1]["file_path"].endswith(".wav")
+    assert not Path(calls[1]["file_path"]).exists()
+
+
+def test_transcribe_audio_file_reports_conversion_failure(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    class _AlwaysFailsModel(_FakeWhisperModel):
+        def transcribe(self, file_path: str, *, beam_size: int, language, vad_filter: bool):
+            raise RuntimeError("decode failed")
+
+    def fake_run(command, check, capture_output, text, timeout):
+        return SimpleNamespace(returncode=1, stderr="unsupported codec")
+
+    fake_module = SimpleNamespace(WhisperModel=_AlwaysFailsModel)
+    monkeypatch.setitem(sys.modules, "faster_whisper", fake_module)
+    monkeypatch.setattr(
+        "app.audio.providers.faster_whisper_provider.subprocess.run",
+        fake_run,
+    )
+    _reset_service_state(monkeypatch)
+    monkeypatch.setattr(transcription_service, "ENABLE_AUDIO_TRANSCRIPTION", True)
+    monkeypatch.setattr(transcription_service, "TRANSCRIPTION_ENGINE", "faster_whisper")
+    audio_path = tmp_path / "sample.mp4"
+    audio_path.write_bytes(b"fake-mp4")
+
+    with pytest.raises(RuntimeError, match="unsupported codec"):
+        transcription_service.transcribe_audio_file(audio_path)
+
+
 def test_get_transcription_model_fails_when_disabled(monkeypatch) -> None:
     _reset_service_state(monkeypatch)
     monkeypatch.setattr(transcription_service, "ENABLE_AUDIO_TRANSCRIPTION", False)

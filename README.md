@@ -714,6 +714,8 @@ El API puede recibir formatos comunes de audio y contenedores con audio: `.ogg`,
 
 La transcripción usa `faster-whisper` de forma local/offline y carga el modelo de manera lazy: no se descarga ni se inicializa hasta que llamas un endpoint de audio o haces warmup manual.
 
+Si `faster-whisper` no puede decodificar directamente el archivo recibido, el servicio intenta convertirlo internamente a WAV mono 16 kHz con `ffmpeg` y reintenta la transcripción. Esto mejora compatibilidad con `.mp4`, `.webm` y grabaciones de móviles.
+
 Comportamiento actual:
 
 * puede transcribir solamente
@@ -932,6 +934,19 @@ curl -X POST http://localhost:8000/v1/audio/warmup \
 ```
 
 * No actives warmup automático si el servidor tiene poca RAM; es mejor mantener lazy loading.
+* Si un `.mp4` de móvil devuelve `Failed to transcribe audio file`, revisa el codec interno y los logs del contenedor. `.mp4` es un contenedor; debe traer una pista de audio decodificable. El servicio intenta convertir a WAV con `ffmpeg` antes de fallar.
+
+```bash
+docker compose logs -f api
+docker compose exec api ffmpeg -i /tmp/voice-command-audio/archivo.mp4
+```
+
+Si actualizaste el `Dockerfile` para incluir `ffmpeg`, reconstruye la imagen antes de recrear el API:
+
+```bash
+docker compose build api
+docker compose up -d --force-recreate api
+```
 
 ---
 

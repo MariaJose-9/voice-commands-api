@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from importlib import import_module
 from pathlib import Path
+import subprocess
+import tempfile
 from threading import Lock
 from typing import Any, Optional
 
@@ -66,14 +68,25 @@ class FasterWhisperProvider(TranscriptionProvider):
         language = language_hint or str(self.settings["language_default"]) or None
 
         try:
-            segments_iter, info = model.transcribe(
-                str(file_path),
-                beam_size=int(self.settings["beam_size"]),
-                language=language,
-                vad_filter=bool(self.settings["vad_filter"]),
-            )
-        except Exception as exc:
-            raise RuntimeError("Failed to transcribe audio file.") from exc
+            segments_iter, info = self._transcribe_with_model(model, file_path, language)
+        except Exception as original_exc:
+            converted_path: Optional[Path] = None
+            try:
+                converted_path = self._convert_to_wav(file_path)
+                segments_iter, info = self._transcribe_with_model(
+                    model,
+                    converted_path,
+                    language,
+                )
+            except Exception as fallback_exc:
+                raise RuntimeError(
+                    "Failed to transcribe audio file after direct decode and WAV "
+                    f"conversion. direct_error={original_exc}; "
+                    f"conversion_or_retry_error={fallback_exc}"
+                ) from fallback_exc
+            finally:
+                if converted_path is not None:
+                    converted_path.unlink(missing_ok=True)
 
         detected_duration = getattr(info, "duration", None)
         if (
@@ -111,3 +124,63 @@ class FasterWhisperProvider(TranscriptionProvider):
 
     def is_loaded(self) -> bool:
         return self._model_loaded and self._model is not None
+
+    def _transcribe_with_model(
+        self,
+        model: Any,
+        file_path: Path,
+        language: Optional[str],
+    ):
+        return model.transcribe(
+            str(file_path),
+            beam_size=int(self.settings["beam_size"]),
+            language=language,
+            vad_filter=bool(self.settings["vad_filter"]),
+        )
+
+    def _convert_to_wav(self, file_path: Path) -> Path:
+        """Convert arbitrary supported containers to a Whisper-friendly WAV."""
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".wav",
+            prefix=f"{file_path.stem}_",
+            dir=file_path.parent,
+            delete=False,
+        ) as temp_file:
+            output_path = Path(temp_file.name)
+
+        command = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(file_path),
+            "-vn",
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            "-f",
+            "wav",
+            str(output_path),
+        ]
+        try:
+            result = subprocess.run(
+                command,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except FileNotFoundError as exc:
+            output_path.unlink(missing_ok=True)
+            raise RuntimeError("ffmpeg is not installed in the runtime image.") from exc
+        except Exception:
+            output_path.unlink(missing_ok=True)
+            raise
+
+        if result.returncode != 0:
+            output_path.unlink(missing_ok=True)
+            stderr = result.stderr.strip() or "unknown ffmpeg error"
+            raise RuntimeError(f"ffmpeg conversion failed: {stderr}")
+
+        return output_path

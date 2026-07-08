@@ -188,6 +188,8 @@ El archivo se guarda temporalmente solo para procesarlo y luego se borra.
 
 El sistema puede guardar logs de metadata/transcripción si `ENABLE_AUDIO_TRANSCRIPTION_LOGS=true`, pero no guarda el archivo de audio.
 
+Si el decodificador directo falla para un formato permitido, el servicio intenta convertir el archivo a WAV mono 16 kHz con `ffmpeg` y reintenta la transcripción.
+
 ## Probar Estado De Audio
 
 ```bash
@@ -250,6 +252,21 @@ Audio demasiado grande o largo:
 {
   "detail": "Audio file is too large."
 }
+```
+
+Fallo de transcripción de `.mp4`:
+
+```json
+{
+  "detail": "Failed to transcribe audio file: ..."
+}
+```
+
+`.mp4` es un contenedor. Si viene desde móvil, puede tener una pista de audio o codec no decodificable por el runtime actual. Revisa logs y codec:
+
+```bash
+docker compose logs -f api
+docker compose exec api ffmpeg -i /tmp/voice-command-audio/archivo.mp4
 ```
 
 ## Configuración Recomendada

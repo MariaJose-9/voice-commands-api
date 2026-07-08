@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://voice-api.mdc-server.com ",
+      "value": "https://voice-api.mdc-server.com",
       "type": "string"
     },
     {
