@@ -11,6 +11,7 @@ from fastapi import APIRouter, Form, HTTPException, UploadFile
 
 from app.audio.schemas import (
     AudioNormalizeResponse,
+    AudioNormalizeV2Response,
     AudioStatusResponse,
     AudioTranscriptionResponse,
     AudioWarmupResponse,
@@ -35,6 +36,7 @@ from app.normalizer import normalize_command_text
 from app.services.normalization_log_service import save_normalization_log
 from app.services.runtime_settings_service import get_bool_setting
 from app.services.settings_service import is_catalog_dirty
+from app.v2.normalizer import normalize_command_text_v2
 
 try:
     from sqlmodel import select
@@ -276,6 +278,99 @@ def process_audio_normalization_upload(
             cleanup_temp_file(temp_path)
 
 
+def process_audio_normalization_upload_v2(
+    file: UploadFile,
+    language_hint: Optional[str] = None,
+    context_json: Optional[str] = None,
+    client_capabilities_json: Optional[str] = None,
+) -> AudioNormalizeV2Response:
+    """Shared transcribe+v2-normalize flow for public API and admin reuse."""
+
+    temp_path: Optional[Path] = None
+    size_bytes: Optional[int] = None
+    settings = get_effective_transcription_settings()
+
+    try:
+        temp_path, size_bytes = save_upload_file_to_temp(file)
+        transcription = transcribe_audio_file(temp_path, language_hint=language_hint)
+        context = _parse_context_json(context_json)
+        client_capabilities = _parse_client_capabilities_json(client_capabilities_json)
+        normalization = normalize_command_text_v2(
+            text=transcription.text,
+            language_hint=language_hint or transcription.language,
+            context=context,
+            client_capabilities=client_capabilities,
+        )
+        try:
+            save_audio_transcription_log(
+                filename=file.filename,
+                content_type=file.content_type,
+                size_bytes=size_bytes,
+                language_hint=language_hint,
+                detected_language=transcription.language,
+                transcribed_text=transcription.text,
+                duration_seconds=transcription.duration_seconds,
+                engine_name=transcription.engine,
+                model_name=transcription.model,
+                ok=True,
+                error_message=None,
+                used_for_normalization=True,
+            )
+        except Exception:
+            logger.warning(
+                "Audio v2 normalization transcription log raised unexpectedly",
+                extra={"event": "audio_transcription_log_warning"},
+                exc_info=True,
+            )
+
+        return AudioNormalizeV2Response(
+            ok=transcription.ok and normalization.ok,
+            transcription=transcription,
+            normalization=normalization,
+            message=None,
+        )
+    except Exception as exc:
+        try:
+            save_audio_transcription_log(
+                filename=file.filename,
+                content_type=file.content_type,
+                size_bytes=size_bytes,
+                language_hint=language_hint,
+                detected_language=None,
+                transcribed_text=None,
+                duration_seconds=None,
+                engine_name=str(settings["engine"]),
+                model_name=str(settings["model_name"]),
+                ok=False,
+                error_message=str(exc),
+                used_for_normalization=True,
+            )
+        except Exception:
+            logger.warning(
+                "Audio v2 normalization failure log raised unexpectedly",
+                extra={"event": "audio_transcription_log_warning"},
+                exc_info=True,
+            )
+        raise
+    finally:
+        if temp_path is not None:
+            cleanup_temp_file(temp_path)
+
+
+def _parse_client_capabilities_json(value: Optional[str]) -> Optional[list[str]]:
+    if value is None or not value.strip():
+        return None
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError("client_capabilities_json must be valid JSON.") from exc
+    if parsed is None:
+        return None
+    if not isinstance(parsed, list):
+        raise ValueError("client_capabilities_json must decode to a list.")
+    return [str(item).strip() for item in parsed if str(item).strip()]
+
+
 @router.get(
     "/v1/audio/status",
     response_model=AudioStatusResponse,
@@ -412,5 +507,57 @@ def normalize_audio(
         logger.exception(
             "audio normalization request failed",
             extra={"event": "audio_normalize_error"},
+        )
+        _raise_audio_http_error(exc)
+
+
+@router.post(
+    "/v2/audio/normalize",
+    response_model=AudioNormalizeV2Response,
+    summary="Transcribe audio and normalize flexible v2 commands",
+    description=(
+        "Accepts the same multipart/form-data payload as `/v1/audio/normalize`, "
+        "transcribes the uploaded audio locally, then runs the flexible v2 "
+        "command normalizer that can return core and custom DynamicCommand "
+        "results. Optional `client_capabilities_json` can be passed as a JSON "
+        "array of supported client action keys."
+    ),
+)
+def normalize_audio_v2(
+    file: UploadFile,
+    language_hint: Optional[str] = Form(
+        default=None,
+        description="Optional language hint such as `en` or `es`.",
+    ),
+    context_json: Optional[str] = Form(
+        default=None,
+        description="Optional JSON object encoded as string for normalizer context.",
+    ),
+    client_capabilities_json: Optional[str] = Form(
+        default=None,
+        description="Optional JSON array of supported v2 client action keys.",
+    ),
+) -> AudioNormalizeV2Response:
+    logger.info(
+        "audio v2 normalization request received",
+        extra={"event": "audio_v2_normalize_request"},
+    )
+
+    try:
+        response = process_audio_normalization_upload_v2(
+            file,
+            language_hint=language_hint,
+            context_json=context_json,
+            client_capabilities_json=client_capabilities_json,
+        )
+        logger.info(
+            "audio v2 normalization request completed",
+            extra={"event": "audio_v2_normalize_success"},
+        )
+        return response
+    except Exception as exc:
+        logger.exception(
+            "audio v2 normalization request failed",
+            extra={"event": "audio_v2_normalize_error"},
         )
         _raise_audio_http_error(exc)

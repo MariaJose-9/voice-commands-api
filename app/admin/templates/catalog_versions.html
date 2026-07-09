@@ -29,6 +29,16 @@
     <span class="pill">Added examples: {{ import_summary.added_examples }}</span>
   </div>
   {% endif %}
+  {% if publish_errors %}
+  <div class="alert alert-error">
+    <strong>Catalog publish failed.</strong>
+    <ul>
+      {% for error in publish_errors %}
+      <li>{{ error.command }} / {{ error.field }}: {{ error.message }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
 
   <section class="subpanel">
     <h3>Import / Export YAML</h3>

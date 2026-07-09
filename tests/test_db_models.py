@@ -13,6 +13,7 @@ from app.db.models import (  # noqa: E402
     CatalogVersion,
     CommandDefinition,
     CommandExample,
+    CommandParameter,
     EntityType,
     EntityValue,
     EntityValueAlias,
@@ -34,8 +35,12 @@ def test_admin_user_model_instantiates() -> None:
 
 def test_command_models_instantiate() -> None:
     definition = CommandDefinition(
-        code=CommandName.SELECT_MONITOR,
+        code=CommandName.SELECT_MONITOR.value,
         display_name="Select Monitor",
+        command_type="core",
+        status="active",
+        protected=True,
+        client_action_key="select_monitor",
     )
     example = CommandExample(
         command_id=1,
@@ -44,9 +49,63 @@ def test_command_models_instantiate() -> None:
         match_type=MatchType.EXACT,
         source=ExampleSource.SEED,
     )
-    assert definition.code == CommandName.SELECT_MONITOR
+    assert definition.code == CommandName.SELECT_MONITOR.value
+    assert definition.command_type == "core"
+    assert definition.status == "active"
+    assert definition.protected is True
+    assert definition.client_action_key == "select_monitor"
     assert example.match_type == MatchType.EXACT
     assert example.source == ExampleSource.SEED
+
+
+def test_custom_command_definition_instantiates() -> None:
+    definition = CommandDefinition(
+        code="CUSTOM_OPEN_PATIENT_CHART",
+        display_name="Open Patient Chart",
+        command_type="custom",
+        status="draft",
+        protected=False,
+        client_action_key="open_patient_chart",
+    )
+
+    assert definition.code == "CUSTOM_OPEN_PATIENT_CHART"
+    assert definition.command_type == "custom"
+    assert definition.status == "draft"
+    assert definition.protected is False
+    assert definition.client_action_key == "open_patient_chart"
+
+
+def test_command_parameter_model_instantiates() -> None:
+    parameter = CommandParameter(
+        command_id=1,
+        slot_name="size",
+        entity_type_id=2,
+        target_field="size_inches",
+        required=True,
+        allow_multiple=False,
+        default_value="75",
+        description="Target screen size in inches.",
+        extraction_hint="Extract exact size in inches.",
+    )
+
+    assert parameter.command_id == 1
+    assert parameter.slot_name == "size"
+    assert parameter.entity_type_id == 2
+    assert parameter.target_field == "size_inches"
+    assert parameter.required is True
+    assert parameter.default_value == "75"
+
+
+def test_command_parameter_rejects_empty_slot_name() -> None:
+    with pytest.raises(ValueError):
+        CommandParameter.model_validate(
+            {
+                "command_id": 1,
+                "slot_name": " ",
+                "entity_type_id": 1,
+                "target_field": "monitor",
+            }
+        )
 
 
 def test_entity_models_instantiate() -> None:

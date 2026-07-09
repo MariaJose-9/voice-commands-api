@@ -28,6 +28,7 @@ from app.services.cache_service import rebuild_runtime_indexes
 from app.services.catalog_service import get_active_catalog, get_catalog_metadata
 from app.services.debug_service import build_debug_response
 from app.services.normalization_log_service import save_normalization_log
+from app.v2.router import router as commands_v2_router
 
 
 logger = logging.getLogger(__name__)
@@ -62,22 +63,25 @@ def _extract_api_token(request: Request) -> str:
 
 
 @app.middleware("http")
-async def require_api_token_for_v1(request: Request, call_next):
+async def require_api_token_for_public_api(request: Request, call_next):
     """Protect public API routes when API_AUTH_TOKEN is configured."""
 
     if ENV == "production" and request.url.path in {
         "/v1/commands/debug",
         "/v1/commands/reload",
+        "/v2/commands/debug",
     }:
         return await call_next(request)
 
-    if request.url.path.startswith("/v1/") and ENV == "production" and not API_AUTH_TOKEN:
+    protected_api_path = request.url.path.startswith(("/v1/", "/v2/"))
+
+    if protected_api_path and ENV == "production" and not API_AUTH_TOKEN:
         return JSONResponse(
             status_code=503,
             content={"detail": "API_AUTH_TOKEN must be configured in production."},
         )
 
-    if (API_AUTH_TOKEN or ENV == "production") and request.url.path.startswith("/v1/"):
+    if (API_AUTH_TOKEN or ENV == "production") and protected_api_path:
         token = _extract_api_token(request)
         if not token or not secrets.compare_digest(token, API_AUTH_TOKEN):
             return JSONResponse(
@@ -102,6 +106,7 @@ app.mount(
 )
 app.include_router(admin_router)
 app.include_router(audio_router)
+app.include_router(commands_v2_router)
 
 @lru_cache(maxsize=1)
 def _get_examples() -> list[dict[str, Any]]:

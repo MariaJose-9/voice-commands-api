@@ -7,6 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas import NormalizeResponse
+from app.v2.schemas import NormalizeV2Response
 
 
 class AudioSegment(BaseModel):
@@ -106,6 +107,53 @@ class AudioNormalizeResponse(BaseModel):
     ok: bool
     transcription: AudioTranscriptionResponse
     normalization: NormalizeResponse
+    message: Optional[str] = None
+
+
+class AudioNormalizeV2Response(BaseModel):
+    """Response payload for audio transcription plus flexible v2 normalization."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "ok": True,
+                "transcription": {
+                    "ok": True,
+                    "text": "rota el monitor dos noventa grados",
+                    "language": "es",
+                    "duration_seconds": 2.1,
+                    "engine": "faster_whisper",
+                    "model": "base",
+                    "segments": [],
+                    "message": None,
+                },
+                "normalization": {
+                    "ok": True,
+                    "raw_text": "rota el monitor dos noventa grados",
+                    "normalized_text": "rota el monitor dos noventa grados",
+                    "language": "es",
+                    "commands": [
+                        {
+                            "code": "ROTATE_SCREEN",
+                            "type": "custom",
+                            "client_action_key": "rotate_screen",
+                            "confidence": 0.91,
+                            "method": "llm",
+                            "params": {"monitor": 2, "angle": 90},
+                            "raw_fragment": "rota el monitor dos noventa grados",
+                        }
+                    ],
+                    "needs_confirmation": False,
+                    "message": None,
+                },
+                "message": None,
+            }
+        }
+    )
+
+    ok: bool
+    transcription: AudioTranscriptionResponse
+    normalization: NormalizeV2Response
     message: Optional[str] = None
 
 

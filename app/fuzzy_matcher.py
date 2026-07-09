@@ -26,7 +26,10 @@ def _flatten_examples() -> list[dict[str, Any]]:
 
     flattened: list[dict[str, Any]] = []
     for entry in get_active_catalog():
-        command_name = CommandName(entry["command"])
+        try:
+            command_name = CommandName(entry["command"])
+        except ValueError:
+            continue
         requires_entities = entry.get("requires_entities", [])
         for example in entry.get("examples", []):
             flattened.append(

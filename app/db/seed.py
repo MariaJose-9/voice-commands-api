@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 from typing import Optional
 
 import yaml
@@ -20,6 +21,7 @@ from app.db.models import (
     AppSetting,
     CommandDefinition,
     CommandExample,
+    CommandParameter,
     EntityType,
     EntityValue,
     EntityValueAlias,
@@ -34,6 +36,7 @@ from app.schemas import CommandName
 
 CATALOG_PATH = Path(__file__).resolve().parent.parent / "commands" / "catalog.yml"
 PASSWORD_CONTEXT = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
+logger = logging.getLogger(__name__)
 
 
 def _hash_password(password: str) -> str:
@@ -73,6 +76,12 @@ def _infer_category(code: str) -> str:
     return "General"
 
 
+def _client_action_key_for_core_command(code: str) -> str:
+    """Return the default client action key for a core command."""
+
+    return code.lower()
+
+
 def seed_commands_from_yaml(
     session: Session, yaml_path: Optional[Path] = None
 ) -> dict:
@@ -92,21 +101,42 @@ def seed_commands_from_yaml(
             continue
 
         command = session.exec(
-            select(CommandDefinition).where(CommandDefinition.code == command_name)
+            select(CommandDefinition).where(CommandDefinition.code == command_name.value)
         ).first()
         if command is None:
             command = CommandDefinition(
-                code=command_name,
+                code=command_name.value,
                 display_name=code.replace("_", " ").title(),
                 description=item.get("description"),
                 category=item.get("category") or _infer_category(code),
                 enabled=True,
                 priority=item.get("priority", 50),
                 min_confidence=0.72,
+                command_type="core",
+                status="active",
+                protected=True,
+                client_action_key=_client_action_key_for_core_command(code),
             )
             session.add(command)
             session.flush()
             created_commands += 1
+        else:
+            changed = False
+            if not getattr(command, "command_type", None):
+                command.command_type = "core"
+                changed = True
+            if command.command_type == "core" and not command.protected:
+                command.protected = True
+                changed = True
+            if not getattr(command, "status", None):
+                command.status = "active"
+                changed = True
+            if not command.client_action_key:
+                command.client_action_key = _client_action_key_for_core_command(code)
+                changed = True
+            if changed:
+                session.add(command)
+                session.flush()
 
         for phrase in item.get("examples", []):
             normalized_phrase = normalize_text(phrase)
@@ -142,7 +172,16 @@ def seed_commands_from_yaml(
 
 
 def _get_or_create_entity_type(
-    session: Session, code: str, display_name: str, description: Optional[str] = None
+    session: Session,
+    code: str,
+    display_name: str,
+    description: Optional[str] = None,
+    data_type: str = "string",
+    unit: Optional[str] = None,
+    protected: bool = False,
+    dynamic_values: bool = False,
+    min_value: Optional[float] = None,
+    max_value: Optional[float] = None,
 ) -> EntityType:
     entity_type = session.exec(
         select(EntityType).where(EntityType.code == code)
@@ -153,9 +192,35 @@ def _get_or_create_entity_type(
             display_name=display_name,
             description=description,
             enabled=True,
+            data_type=data_type,
+            unit=unit,
+            protected=protected,
+            dynamic_values=dynamic_values,
+            min_value=min_value,
+            max_value=max_value,
         )
         session.add(entity_type)
         session.flush()
+    else:
+        changed = False
+        updates = {
+            "display_name": display_name,
+            "data_type": data_type,
+            "unit": unit,
+            "protected": protected,
+            "dynamic_values": dynamic_values,
+            "min_value": min_value,
+            "max_value": max_value,
+        }
+        if description is not None:
+            updates["description"] = description
+        for field_name, value in updates.items():
+            if getattr(entity_type, field_name) != value:
+                setattr(entity_type, field_name, value)
+                changed = True
+        if changed:
+            session.add(entity_type)
+            session.flush()
     return entity_type
 
 
@@ -215,9 +280,51 @@ def seed_default_entities(session: Session) -> dict:
     created_values = 0
     created_aliases = 0
 
-    monitor = _get_or_create_entity_type(session, "monitor", "Monitor")
-    layout = _get_or_create_entity_type(session, "layout", "Layout")
-    size_inches = _get_or_create_entity_type(session, "size_inches", "Size Inches")
+    monitor = _get_or_create_entity_type(
+        session,
+        "monitor",
+        "Monitor",
+        data_type="enum",
+        protected=True,
+    )
+    layout = _get_or_create_entity_type(
+        session,
+        "layout",
+        "Layout",
+        data_type="enum",
+        protected=True,
+    )
+    size_inches = _get_or_create_entity_type(
+        session,
+        "size_inches",
+        "Size Inches",
+        data_type="integer",
+        unit="inches",
+        protected=True,
+        dynamic_values=True,
+        min_value=40,
+        max_value=150,
+    )
+    _get_or_create_entity_type(
+        session,
+        "angle_degrees",
+        "Angle Degrees",
+        data_type="integer",
+        unit="degrees",
+        protected=False,
+        dynamic_values=True,
+        min_value=0,
+        max_value=360,
+    )
+    _get_or_create_entity_type(
+        session,
+        "distance",
+        "Distance",
+        data_type="float",
+        unit="meter",
+        protected=False,
+        dynamic_values=True,
+    )
 
     monitor_1 = _get_or_create_entity_value(session, monitor.id, "1", "Monitor 1")
     monitor_2 = _get_or_create_entity_value(session, monitor.id, "2", "Monitor 2")
@@ -423,6 +530,122 @@ def seed_default_entities(session: Session) -> dict:
     }
 
 
+CORE_COMMAND_PARAMETERS = {
+    "SELECT_MONITOR": [
+        ("monitor", "monitor", "monitor", True),
+    ],
+    "SET_SIZE": [
+        ("size", "size_inches", "size_inches", True),
+    ],
+    "SET_LAYOUT": [
+        ("layout", "layout", "layout", True),
+    ],
+    "ZOOM_IN": [
+        ("distance", "distance", "value", False),
+    ],
+    "ZOOM_OUT": [
+        ("distance", "distance", "value", False),
+    ],
+    "INCREASE_SIZE": [
+        ("amount", "distance", "value", False),
+    ],
+    "DECREASE_SIZE": [
+        ("amount", "distance", "value", False),
+    ],
+    "MOVE_LEFT": [
+        ("amount", "distance", "value", False),
+    ],
+    "MOVE_RIGHT": [
+        ("amount", "distance", "value", False),
+    ],
+    "MOVE_UP": [
+        ("amount", "distance", "value", False),
+    ],
+    "MOVE_DOWN": [
+        ("amount", "distance", "value", False),
+    ],
+}
+
+
+def seed_core_command_parameters(session: Session) -> dict:
+    """Seed parameter metadata for core commands without duplicating rows."""
+
+    created = 0
+    skipped_missing_commands = 0
+
+    # Ensure dynamic entities used by parameters exist even if entity seed was not run.
+    _get_or_create_entity_type(
+        session,
+        "distance",
+        "Distance",
+        data_type="float",
+        unit="meter",
+        dynamic_values=True,
+    )
+    session.flush()
+
+    entity_types = {
+        entity.code: entity
+        for entity in session.exec(select(EntityType)).all()
+        if entity.id is not None
+    }
+
+    for command_code, definitions in CORE_COMMAND_PARAMETERS.items():
+        command = session.exec(
+            select(CommandDefinition).where(CommandDefinition.code == command_code)
+        ).first()
+        if command is None or command.id is None:
+            logger.warning(
+                "Skipping core command parameter seed because command is missing",
+                extra={
+                    "event": "seed_command_parameter_missing_command",
+                    "command": command_code,
+                },
+            )
+            skipped_missing_commands += 1
+            continue
+
+        for slot_name, entity_type_code, target_field, required in definitions:
+            entity_type = entity_types.get(entity_type_code)
+            if entity_type is None or entity_type.id is None:
+                entity_type = _get_or_create_entity_type(
+                    session,
+                    entity_type_code,
+                    entity_type_code.replace("_", " ").title(),
+                )
+                entity_types[entity_type_code] = entity_type
+
+            exists = session.exec(
+                select(CommandParameter).where(
+                    CommandParameter.command_id == command.id,
+                    CommandParameter.slot_name == slot_name,
+                )
+            ).first()
+            if exists is not None:
+                continue
+
+            session.add(
+                CommandParameter(
+                    command_id=command.id,
+                    slot_name=slot_name,
+                    entity_type_id=entity_type.id,
+                    target_field=target_field,
+                    required=required,
+                    allow_multiple=False,
+                    extraction_hint=(
+                        f"Extract {slot_name} for {command_code} into {target_field}."
+                    ),
+                )
+            )
+            created += 1
+
+    session.commit()
+    return {
+        "parameters_created": created,
+        "missing_commands": skipped_missing_commands,
+    }
+
+
 def seed_default_settings(session: Session) -> dict:
     """Seed default runtime settings."""
 
@@ -485,6 +708,7 @@ def run_seed(session: Session) -> dict:
     return {
         "commands": seed_commands_from_yaml(session),
         "entities": seed_default_entities(session),
+        "parameters": seed_core_command_parameters(session),
         "settings": seed_default_settings(session),
         "admin": seed_default_admin_user(session),
     }

@@ -429,7 +429,7 @@ La primera llamada que use el matcher semántico puede demorar porque `sentence-
 
 ### API authentication token
 
-`API_AUTH_TOKEN` protege los endpoints públicos bajo `/v1/*`. En `development` puede quedar vacío para pruebas locales. En `production` es obligatorio: si `ENV=production` y no configuras `API_AUTH_TOKEN`, las rutas `/v1/*` responden `503` y no procesan requests.
+`API_AUTH_TOKEN` protege los endpoints públicos bajo `/v1/*` y `/v2/*`. En `development` puede quedar vacío para pruebas locales. En `production` es obligatorio: si `ENV=production` y no configuras `API_AUTH_TOKEN`, las rutas públicas versionadas responden `503` y no procesan requests.
 
 Si configuras:
 
@@ -437,7 +437,7 @@ Si configuras:
 API_AUTH_TOKEN=replace-with-a-long-random-token
 ```
 
-Las rutas `/v1/commands/*` y `/v1/audio/*` requieren uno de estos headers:
+Las rutas `/v1/commands/*`, `/v1/audio/*`, `/v2/commands/*` y `/v2/audio/*` requieren uno de estos headers:
 
 ```http
 Authorization: Bearer replace-with-a-long-random-token
@@ -459,6 +459,143 @@ curl -X POST http://localhost:8000/v1/commands/normalize \
 ```
 
 `/`, `/health`, `/health/db` y el panel `/admin` no usan este token. El panel mantiene autenticación con cookie firmada y CSRF.
+
+---
+
+## Custom Commands and v2 API
+
+La API mantiene dos contratos:
+
+* `v1`: devuelve comandos core fijos definidos por el enum `CommandName`. Es estable y compatible con clientes existentes.
+* `v2`: devuelve comandos core + comandos custom administrados desde MySQL. El campo `code` es string y no depende del enum fijo.
+
+### Core Commands
+
+Los comandos core son los comandos internos existentes, por ejemplo `SELECT_MONITOR`, `SET_SIZE`, `MOVE_RIGHT` o `STOP_STREAM`.
+
+Reglas operativas:
+
+* Están protegidos.
+* No se eliminan desde el panel admin.
+* No se cambia su `code`.
+* Pueden tener examples y parámetros, pero siguen siendo parte del contrato estable.
+
+### Custom Commands
+
+Los comandos custom se crean desde `/admin/commands/new`.
+
+Reglas:
+
+* Requieren `client_action_key`, por ejemplo `rotate_screen`.
+* Pueden tener `examples`.
+* Pueden tener `parameters` ligados a entidades.
+* Se deben publicar antes de quedar activos en runtime.
+* La app cliente debe declarar soporte con `client_capabilities` para recibirlos.
+
+### Command Parameters
+
+El modelo es:
+
+```text
+CommandDefinition -> CommandParameter -> EntityType
+```
+
+Ejemplo:
+
+```text
+ROTATE_SCREEN -> angle -> angle_degrees
+```
+
+Esto significa:
+
+* `ROTATE_SCREEN` es el comando.
+* `angle` es el parámetro lógico.
+* `angle_degrees` define el tipo de entidad, por ejemplo integer en grados con rango `0-360`.
+* `target_field` define cómo sale en la respuesta, por ejemplo `params.angle`.
+
+Un comando custom como `ROTATE_SCREEN` puede tener parámetros:
+
+```text
+monitor -> entity monitor -> target_field monitor
+angle -> entity angle_degrees -> target_field angle
+```
+
+### Flujo Admin
+
+1. Crear custom command en `/admin/commands/new`.
+2. Agregar `examples` en el detalle del comando.
+3. Crear o reutilizar `EntityType` en `/admin/entities`.
+4. Ligar `parameters/entities` en el detalle del comando.
+5. Probar en `/admin/tester` seleccionando `API Version: v2`.
+6. Publicar catálogo desde `/admin/catalog/versions`.
+7. La app cliente llama `/v2/commands/normalize`.
+
+### Endpoint Principal v2
+
+```bash
+curl -X POST https://voice-api.mdc-server.com/v2/commands/normalize \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer TOKEN" \
+  -d '{
+    "text": "rota el monitor 2 noventa grados",
+    "language_hint": "es",
+    "client_capabilities": ["rotate_screen"]
+  }'
+```
+
+Respuesta esperada a alto nivel:
+
+```json
+{
+  "commands": [
+    {
+      "code": "ROTATE_SCREEN",
+      "type": "custom",
+      "client_action_key": "rotate_screen",
+      "params": {
+        "monitor": 2,
+        "angle": 90
+      }
+    }
+  ]
+}
+```
+
+También puedes sincronizar specs activas:
+
+```bash
+curl https://voice-api.mdc-server.com/v2/commands/specs \
+  -H "Authorization: Bearer TOKEN"
+```
+
+Y probar audio con v2:
+
+```bash
+curl -X POST https://voice-api.mdc-server.com/v2/audio/normalize \
+  -H "Authorization: Bearer TOKEN" \
+  -F "file=@sample.mp3" \
+  -F "language_hint=es" \
+  -F 'client_capabilities_json=["rotate_screen"]'
+```
+
+### Soft Delete
+
+* Core commands no se borran.
+* Custom commands en `draft` pueden borrarse.
+* Custom commands publicados no se borran de forma destructiva; se desactivan o deprecian.
+* Entity types protegidas no se borran.
+* Entity types usadas por parámetros activos no se pueden desactivar.
+
+### Troubleshooting v2
+
+* Si el custom command no aparece, revisa que el catálogo esté publicado.
+* Si aparece `catalog_dirty=true`, publica el catálogo para activar cambios.
+* Si falla publish, revisa que el comando tenga al menos un example habilitado.
+* Si falta `client_action_key`, el custom command no puede publicarse.
+* Si falta un parámetro requerido, la validación dinámica rechaza el comando.
+* Si `client_capabilities` no incluye la acción, el custom command se filtra.
+* Si el LLM devuelve un `code` que no existe en specs activas, se descarta.
+* Usa `/v2/commands/debug` para revisar specs usadas, validación dinámica y filtro de capabilities.
 
 ---
 

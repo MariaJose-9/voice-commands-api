@@ -148,7 +148,10 @@ def build_semantic_index(force_rebuild: bool = False) -> None:
         texts_to_encode: list[str] = []
 
         for entry in _load_catalog(force_refresh=force_rebuild):
-            command_name = CommandName(entry["command"])
+            try:
+                command_name = CommandName(entry["command"])
+            except ValueError:
+                continue
             requires_entities = entry.get("requires_entities", [])
             for example in entry.get("examples", []):
                 normalized_example = normalize_text(example)

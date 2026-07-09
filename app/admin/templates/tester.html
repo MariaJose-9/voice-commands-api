@@ -24,9 +24,80 @@
       <span>Language Hint</span>
       <input type="text" name="language_hint" value="{{ language_hint }}" placeholder="en or es">
     </label>
+    <label>
+      <span>API Version</span>
+      <select name="api_version">
+        <option value="v1" {% if api_version == "v1" %}selected{% endif %}>v1</option>
+        <option value="v2" {% if api_version == "v2" %}selected{% endif %}>v2</option>
+      </select>
+    </label>
+    <label>
+      <span>Client Capabilities (JSON array or comma list)</span>
+      <input type="text" name="client_capabilities" value="{{ client_capabilities }}" placeholder='["rotate_screen"]'>
+    </label>
     <button class="button" type="submit">Test</button>
   </form>
 </section>
+
+{% if v2_result %}
+<section class="panel debug-panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">V2 Result</p>
+      <h2>{{ v2_result.raw_text }}</h2>
+    </div>
+  </div>
+
+  <section class="subpanel">
+    <h3>Dynamic Commands</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Type</th>
+          <th>Client Action</th>
+          <th>Params</th>
+          <th>Confidence</th>
+          <th>Method</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for result in v2_result.commands %}
+        <tr>
+          <td>{{ result.code }}</td>
+          <td>{{ result.type }}</td>
+          <td>{{ result.client_action_key or "-" }}</td>
+          <td><div class="json-block">{{ result.params|tojson(indent=2) }}</div></td>
+          <td>{{ result.confidence }}</td>
+          <td>{{ result.method }}</td>
+          <td>
+            <form method="post" action="/admin/tester/save-example" class="compact-form">
+              <input type="hidden" name="phrase" value="{{ v2_result.raw_text }}">
+              <input type="hidden" name="language" value="{{ language_hint }}">
+              <input type="hidden" name="return_to" value="tester">
+              <input type="hidden" name="api_version" value="v2">
+              <input type="hidden" name="match_type" value="semantic">
+              <select name="command_id" required>
+                {% for command in commands %}
+                <option value="{{ command.id }}" {% if command.code == result.code %}selected{% endif %}>{{ command.code }}</option>
+                {% endfor %}
+              </select>
+              <button class="button button-small" type="submit">Save phrase as example</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="subpanel">
+    <h3>V2 JSON</h3>
+    <div class="json-block">{{ v2_result|tojson(indent=2) }}</div>
+  </section>
+</section>
+{% endif %}
 
 {% if debug_data %}
 <section class="panel debug-panel">
@@ -89,7 +160,7 @@
           <span>Command</span>
           <select name="command_id" required>
             {% for command in commands %}
-            <option value="{{ command.id }}" {% if command.code.value == result.command %}selected{% endif %}>{{ command.code }}</option>
+            <option value="{{ command.id }}" {% if command.code == result.command or command.code.value == result.command %}selected{% endif %}>{{ command.code }}</option>
             {% endfor %}
           </select>
         </label>

@@ -13,6 +13,7 @@ from app import config
 from app.schemas import CommandName, MatchMethod, NormalizeResponse, NormalizedCommand
 from app.services import runtime_settings_service
 from app.services.command_canonicalization_service import canonicalize_commands
+from app.services.command_spec_service import CommandSpec, get_active_command_specs
 
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,75 @@ def _commands_for_prompt(commands: Optional[list[NormalizedCommand]]) -> list[di
     return [command.model_dump(mode="json") for command in commands]
 
 
+def _fallback_core_specs_for_prompt() -> list[dict[str, Any]]:
+    """Return a simple core command spec list if DB-backed specs are unavailable."""
+
+    return [
+        {
+            "code": command.value,
+            "command_type": "core",
+            "display_name": command.value.replace("_", " ").title(),
+            "description": None,
+            "client_action_key": command.value.lower(),
+            "examples": [],
+            "parameters": [],
+        }
+        for command in CommandName
+    ]
+
+
+def _parameter_for_prompt(parameter) -> dict[str, Any]:
+    """Convert a CommandParameterSpec into compact prompt metadata."""
+
+    return {
+        "slot_name": parameter.slot_name,
+        "entity": parameter.entity_code,
+        "target_field": parameter.target_field,
+        "required": parameter.required,
+        "allow_multiple": parameter.allow_multiple,
+        "default_value": parameter.default_value,
+        "description": parameter.description,
+        "extraction_hint": parameter.extraction_hint,
+        "data_type": parameter.data_type,
+        "unit": parameter.unit,
+        "dynamic_values": parameter.dynamic_values,
+        "min_value": parameter.min_value,
+        "max_value": parameter.max_value,
+    }
+
+
+def _command_spec_for_prompt(spec: CommandSpec) -> dict[str, Any]:
+    """Convert a CommandSpec into compact prompt metadata."""
+
+    return {
+        "code": spec.code,
+        "command_type": spec.command_type,
+        "display_name": spec.display_name,
+        "description": spec.description,
+        "client_action_key": spec.client_action_key,
+        "examples": spec.examples[:8],
+        "parameters": [
+            _parameter_for_prompt(parameter) for parameter in spec.parameters
+        ],
+    }
+
+
+def _command_specs_for_prompt() -> list[dict[str, Any]]:
+    """Return active core/custom command specs for prompt context."""
+
+    try:
+        specs = get_active_command_specs()
+    except Exception:
+        logger.exception(
+            "failed to load command specs for LLM prompt; using core fallback",
+            extra={"event": "llm_prompt_command_spec_fallback"},
+        )
+        return _fallback_core_specs_for_prompt()
+    if not specs:
+        return _fallback_core_specs_for_prompt()
+    return [_command_spec_for_prompt(spec) for spec in specs]
+
+
 def build_llm_command_prompt(
     raw_text: str,
     normalized_text: str,
@@ -108,12 +178,16 @@ def build_llm_command_prompt(
         "previous_commands": _commands_for_prompt(previous_commands),
         "completeness_reason": completeness_reason,
     }
+    command_specs = _command_specs_for_prompt()
     return (
         "You are a local command interpreter for a medical monitor application.\n"
         "Convert free-form voice text into canonical structured commands.\n"
         "Respond with JSON only. Do not include markdown or explanations.\n"
-        "Do not invent commands outside this valid command list:\n"
+        "Do not invent commands outside the active command specs. For the stable /v1 response, use canonical core commands when possible.\n"
+        "Stable /v1 canonical command enum:\n"
         f"{json.dumps(_command_names(), ensure_ascii=True)}\n"
+        "Active command specs from database or safe fallback:\n"
+        f"{json.dumps(command_specs, ensure_ascii=False)}\n"
         "JSON schema to follow strictly:\n"
         f"{json.dumps(build_llm_json_schema(), ensure_ascii=True)}\n"
         "Domain rules:\n"

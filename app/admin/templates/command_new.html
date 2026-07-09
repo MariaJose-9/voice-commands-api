@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}New Custom Command{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div>
+      <p class="eyebrow">Command</p>
+      <h2>New Custom Command</h2>
+    </div>
+    <div class="pill-row">
+      <a class="button button-secondary button-small" href="/admin/commands">Back</a>
+    </div>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/admin/commands/new" class="form-stack">
+    <label>
+      <span>Code</span>
+      <input type="text" name="code" value="{{ form.code }}" placeholder="CUSTOM_ROTATE_SCREEN" required>
+    </label>
+    <label>
+      <span>Display Name</span>
+      <input type="text" name="display_name" value="{{ form.display_name }}" placeholder="Rotate Screen" required>
+    </label>
+    <label>
+      <span>Description</span>
+      <input type="text" name="description" value="{{ form.description }}">
+    </label>
+    <label>
+      <span>Category</span>
+      <input type="text" name="category" value="{{ form.category }}" placeholder="Custom">
+    </label>
+    <label>
+      <span>Client Action Key</span>
+      <input type="text" name="client_action_key" value="{{ form.client_action_key }}" placeholder="rotate_screen" required>
+    </label>
+    <label>
+      <span>Priority</span>
+      <input type="number" name="priority" value="{{ form.priority }}" required>
+    </label>
+    <label>
+      <span>Min Confidence</span>
+      <input type="number" min="0" max="1" step="0.01" name="min_confidence" value="{{ form.min_confidence }}" required>
+    </label>
+    <label class="checkbox">
+      <input type="checkbox" name="enabled" {% if form.enabled %}checked{% endif %}>
+      <span>Enabled</span>
+    </label>
+    <button class="button" type="submit">Create Custom Command</button>
+  </form>
+
+  <p class="muted">
+    Custom commands are created as draft, unprotected commands. Publish the catalog to activate runtime changes.
+  </p>
+</section>
+{% endblock %}

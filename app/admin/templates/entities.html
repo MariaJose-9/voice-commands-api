@@ -11,6 +11,7 @@
     </div>
     <div class="pill-row">
       <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+      <a class="button button-small" href="/admin/entities/new">New Entity Type</a>
     </div>
   </div>
   <table class="data-table">
@@ -18,6 +19,13 @@
       <tr>
         <th>Code</th>
         <th>Display Name</th>
+        <th>Data Type</th>
+        <th>Unit</th>
+        <th>Dynamic</th>
+        <th>Min</th>
+        <th>Max</th>
+        <th>Protected</th>
+        <th>Used By Commands</th>
         <th>Enabled</th>
         <th>Values</th>
         <th></th>
@@ -28,6 +36,13 @@
       <tr>
         <td>{{ row.entity_type.code }}</td>
         <td>{{ row.entity_type.display_name }}</td>
+        <td>{{ row.entity_type.data_type }}</td>
+        <td>{{ row.entity_type.unit or "-" }}</td>
+        <td>{{ "yes" if row.entity_type.dynamic_values else "no" }}</td>
+        <td>{{ row.entity_type.min_value if row.entity_type.min_value is not none else "-" }}</td>
+        <td>{{ row.entity_type.max_value if row.entity_type.max_value is not none else "-" }}</td>
+        <td>{{ "yes" if row.entity_type.protected else "no" }}</td>
+        <td>{{ row.used_by_commands }}</td>
         <td>{{ "yes" if row.entity_type.enabled else "no" }}</td>
         <td>{{ row.value_count }}</td>
         <td><a class="button button-small" href="/admin/entities/{{ row.entity_type.id }}">Edit</a></td>

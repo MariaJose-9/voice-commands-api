@@ -16,6 +16,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 import app.main as main_module
 from app.audio.schemas import AudioNormalizeResponse, AudioTranscriptionResponse
 import app.services.entity_catalog_service as entity_catalog_service
+from app.services import command_spec_service
 import app.services.publish_service as publish_service
 from app.db.models import (
     AppSetting,
@@ -24,6 +25,7 @@ from app.db.models import (
     CatalogVersion,
     CommandDefinition,
     CommandExample,
+    CommandParameter,
     CommandName,
     EntityType,
     EntityValue,
@@ -32,6 +34,7 @@ from app.db.models import (
 )
 from app.entity_extractor import extract_entities
 from app.preprocessor import normalize_text
+from app.v2.schemas import DynamicCommand, NormalizeV2Response
 
 
 admin_router_module = importlib.import_module("app.admin.router")
@@ -83,6 +86,480 @@ def test_admin_commands_page_lists_commands(client_with_sqlite) -> None:
     assert response.status_code == 200
     assert "START_STREAM" in response.text
     assert "Start Stream" in response.text
+    assert "New custom command" in response.text
+    assert "Type" in response.text
+    assert "Status" in response.text
+    assert "Protected" in response.text
+
+
+def test_admin_create_custom_command_valid(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+
+    response = client.post(
+        "/admin/commands/new",
+        data={
+            "code": "CUSTOM_ROTATE_SCREEN",
+            "display_name": "Rotate Screen",
+            "description": "Rotate selected screen",
+            "category": "Custom",
+            "client_action_key": "rotate_screen",
+            "priority": "55",
+            "min_confidence": "0.75",
+            "enabled": "on",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"].startswith("/admin/commands/")
+
+    with Session(engine) as session:
+        command = session.exec(
+            select(CommandDefinition).where(
+                CommandDefinition.code == "CUSTOM_ROTATE_SCREEN"
+            )
+        ).first()
+        assert command is not None
+        assert command.display_name == "Rotate Screen"
+        assert command.command_type == "custom"
+        assert command.status == "draft"
+        assert command.protected is False
+        assert command.client_action_key == "rotate_screen"
+        assert command.priority == 55
+        assert command.min_confidence == 0.75
+        dirty = session.exec(
+            select(AppSetting).where(AppSetting.key == "CATALOG_DIRTY")
+        ).first()
+        assert dirty is not None
+        assert dirty.value == "true"
+        audit = session.exec(
+            select(AuditLog).where(AuditLog.action == "custom_command_create")
+        ).first()
+        assert audit is not None
+        assert audit.entity_id == command.id
+
+
+def test_admin_create_custom_command_rejects_invalid_code(client_with_sqlite) -> None:
+    client, _engine = client_with_sqlite
+
+    response = client.post(
+        "/admin/commands/new",
+        data={
+            "code": "custom bad",
+            "display_name": "Bad Command",
+            "client_action_key": "bad_command",
+            "priority": "50",
+            "min_confidence": "0.72",
+            "enabled": "on",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "uppercase letters, numbers, and underscores" in response.text
+
+
+def test_admin_create_custom_command_rejects_duplicate_code(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        session.add(
+            CommandDefinition(
+                code="CUSTOM_DUPLICATE",
+                display_name="Duplicate",
+                command_type="custom",
+                status="draft",
+                client_action_key="custom_duplicate",
+            )
+        )
+        session.commit()
+
+    response = client.post(
+        "/admin/commands/new",
+        data={
+            "code": "CUSTOM_DUPLICATE",
+            "display_name": "Duplicate Again",
+            "client_action_key": "custom_duplicate_again",
+            "priority": "50",
+            "min_confidence": "0.72",
+            "enabled": "on",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Code already exists" in response.text
+
+
+def test_admin_create_custom_command_rejects_core_code(client_with_sqlite) -> None:
+    client, _engine = client_with_sqlite
+
+    response = client.post(
+        "/admin/commands/new",
+        data={
+            "code": "SELECT_MONITOR",
+            "display_name": "Select Monitor Override",
+            "client_action_key": "select_monitor_override",
+            "priority": "50",
+            "min_confidence": "0.72",
+            "enabled": "on",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "protected core command" in response.text
+
+
+def test_admin_core_protected_command_cannot_be_deleted(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code=CommandName.START_STREAM.value,
+            display_name="Start Stream",
+            command_type="core",
+            status="active",
+            protected=True,
+        )
+        session.add(command)
+        session.commit()
+        session.refresh(command)
+        command_id = command.id
+
+    response = client.post(f"/admin/commands/{command_id}/delete")
+
+    assert response.status_code == 400
+    assert "Only unprotected custom draft commands" in response.text
+    with Session(engine) as session:
+        assert session.get(CommandDefinition, command_id) is not None
+
+
+def test_admin_core_protected_command_update_does_not_change_code_or_type(
+    client_with_sqlite,
+) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code=CommandName.CAPTURE.value,
+            display_name="Capture",
+            command_type="core",
+            status="active",
+            protected=True,
+        )
+        session.add(command)
+        session.commit()
+        session.refresh(command)
+        command_id = command.id
+
+    response = client.post(
+        f"/admin/commands/{command_id}/update",
+        data={
+            "code": "CUSTOM_CAPTURE",
+            "command_type": "custom",
+            "display_name": "Capture Updated",
+            "description": "",
+            "category": "Capture / Stream",
+            "priority": "75",
+            "min_confidence": "0.8",
+            "enabled": "on",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    with Session(engine) as session:
+        command = session.get(CommandDefinition, command_id)
+        assert command is not None
+        assert command.code == CommandName.CAPTURE.value
+        assert command.command_type == "core"
+        assert command.display_name == "Capture Updated"
+
+
+def test_admin_custom_draft_can_be_deleted(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code="CUSTOM_DRAFT_DELETE",
+            display_name="Draft Delete",
+            command_type="custom",
+            status="draft",
+            protected=False,
+        )
+        session.add(command)
+        session.commit()
+        session.refresh(command)
+        command_id = command.id
+
+    response = client.post(f"/admin/commands/{command_id}/delete", follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/commands"
+    with Session(engine) as session:
+        assert session.get(CommandDefinition, command_id) is None
+        dirty = session.exec(
+            select(AppSetting).where(AppSetting.key == "CATALOG_DIRTY")
+        ).first()
+        assert dirty is not None
+        assert dirty.value == "true"
+
+
+def test_admin_custom_active_deprecates_and_cannot_be_deleted(
+    client_with_sqlite,
+) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code="CUSTOM_ACTIVE",
+            display_name="Active Custom",
+            command_type="custom",
+            status="active",
+            protected=False,
+        )
+        session.add(command)
+        session.commit()
+        session.refresh(command)
+        command_id = command.id
+
+    delete_response = client.post(f"/admin/commands/{command_id}/delete")
+    assert delete_response.status_code == 400
+
+    deprecate_response = client.post(
+        f"/admin/commands/{command_id}/deprecate",
+        follow_redirects=False,
+    )
+    assert deprecate_response.status_code == 303
+
+    with Session(engine) as session:
+        command = session.get(CommandDefinition, command_id)
+        assert command is not None
+        assert command.status == "deprecated"
+        assert command.enabled is False
+        dirty = session.exec(
+            select(AppSetting).where(AppSetting.key == "CATALOG_DIRTY")
+        ).first()
+        assert dirty is not None
+        assert dirty.value == "true"
+
+
+def test_admin_disabled_command_not_in_active_specs(
+    client_with_sqlite,
+    monkeypatch,
+) -> None:
+    _client, engine = client_with_sqlite
+    monkeypatch.setattr(command_spec_service, "SessionFactory", Session)
+    monkeypatch.setattr(command_spec_service, "engine", engine)
+    command_spec_service.clear_command_spec_cache()
+    with Session(engine) as session:
+        session.add(
+            CommandDefinition(
+                code="CUSTOM_DISABLED_SPEC",
+                display_name="Disabled Spec",
+                command_type="custom",
+                status="disabled",
+                enabled=False,
+            )
+        )
+        session.commit()
+
+    specs = command_spec_service.get_active_command_specs(force_refresh=True)
+
+    assert all(spec.code != "CUSTOM_DISABLED_SPEC" for spec in specs)
+
+
+def test_admin_command_detail_renders_parameters_section(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code="CUSTOM_PARAM_RENDER",
+            display_name="Param Render",
+            command_type="custom",
+            status="draft",
+        )
+        entity_type = EntityType(code="distance", display_name="Distance", enabled=True)
+        session.add(command)
+        session.add(entity_type)
+        session.commit()
+        session.refresh(command)
+        session.refresh(entity_type)
+        session.add(
+            CommandParameter(
+                command_id=command.id,
+                slot_name="distance",
+                entity_type_id=entity_type.id,
+                target_field="value",
+                extraction_hint="Extract distance.",
+            )
+        )
+        session.commit()
+        command_id = command.id
+
+    response = client.get(f"/admin/commands/{command_id}")
+
+    assert response.status_code == 200
+    assert "Parameters / Entities" in response.text
+    assert "distance" in response.text
+    assert "Extract distance." in response.text
+
+
+def test_admin_add_parameter_to_custom_command(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code="CUSTOM_PARAM_ADD",
+            display_name="Param Add",
+            command_type="custom",
+            status="draft",
+        )
+        entity_type = EntityType(code="angle_degrees", display_name="Angle", enabled=True)
+        session.add(command)
+        session.add(entity_type)
+        session.commit()
+        session.refresh(command)
+        session.refresh(entity_type)
+        command_id = command.id
+        entity_type_id = entity_type.id
+
+    response = client.post(
+        f"/admin/commands/{command_id}/parameters",
+        data={
+            "slot_name": "angle",
+            "entity_type_id": str(entity_type_id),
+            "target_field": "angle",
+            "required": "on",
+            "allow_multiple": "",
+            "default_value": "90",
+            "description": "Rotation angle",
+            "extraction_hint": "Extract degrees",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/admin/commands/{command_id}"
+    with Session(engine) as session:
+        parameter = session.exec(select(CommandParameter)).first()
+        assert parameter is not None
+        assert parameter.slot_name == "angle"
+        assert parameter.target_field == "angle"
+        assert parameter.required is True
+        assert parameter.default_value == "90"
+        dirty = session.exec(
+            select(AppSetting).where(AppSetting.key == "CATALOG_DIRTY")
+        ).first()
+        assert dirty is not None
+        assert dirty.value == "true"
+
+
+def test_admin_add_parameter_rejects_duplicate_slot_name(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code="CUSTOM_PARAM_DUP",
+            display_name="Param Dup",
+            command_type="custom",
+            status="draft",
+        )
+        entity_type = EntityType(code="distance", display_name="Distance", enabled=True)
+        session.add(command)
+        session.add(entity_type)
+        session.commit()
+        session.refresh(command)
+        session.refresh(entity_type)
+        session.add(
+            CommandParameter(
+                command_id=command.id,
+                slot_name="amount",
+                entity_type_id=entity_type.id,
+                target_field="value",
+            )
+        )
+        session.commit()
+        command_id = command.id
+        entity_type_id = entity_type.id
+
+    response = client.post(
+        f"/admin/commands/{command_id}/parameters",
+        data={
+            "slot_name": "amount",
+            "entity_type_id": str(entity_type_id),
+            "target_field": "value",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "already exists" in response.text
+
+
+def test_admin_cannot_delete_required_parameter_from_core_protected(
+    client_with_sqlite,
+) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code=CommandName.SELECT_MONITOR.value,
+            display_name="Select Monitor",
+            command_type="core",
+            status="active",
+            protected=True,
+        )
+        entity_type = EntityType(code="monitor", display_name="Monitor", enabled=True)
+        session.add(command)
+        session.add(entity_type)
+        session.commit()
+        session.refresh(command)
+        session.refresh(entity_type)
+        parameter = CommandParameter(
+            command_id=command.id,
+            slot_name="monitor",
+            entity_type_id=entity_type.id,
+            target_field="monitor",
+            required=True,
+        )
+        session.add(parameter)
+        session.commit()
+        session.refresh(parameter)
+        parameter_id = parameter.id
+
+    response = client.post(f"/admin/command-parameters/{parameter_id}/delete")
+
+    assert response.status_code == 400
+    assert "cannot be deleted" in response.text
+    with Session(engine) as session:
+        assert session.get(CommandParameter, parameter_id) is not None
+
+
+def test_admin_deletes_custom_draft_parameter(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code="CUSTOM_PARAM_DELETE",
+            display_name="Param Delete",
+            command_type="custom",
+            status="draft",
+        )
+        entity_type = EntityType(code="distance", display_name="Distance", enabled=True)
+        session.add(command)
+        session.add(entity_type)
+        session.commit()
+        session.refresh(command)
+        session.refresh(entity_type)
+        parameter = CommandParameter(
+            command_id=command.id,
+            slot_name="distance",
+            entity_type_id=entity_type.id,
+            target_field="value",
+        )
+        session.add(parameter)
+        session.commit()
+        session.refresh(parameter)
+        command_id = command.id
+        parameter_id = parameter.id
+
+    response = client.post(
+        f"/admin/command-parameters/{parameter_id}/delete",
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/admin/commands/{command_id}"
+    with Session(engine) as session:
+        assert session.get(CommandParameter, parameter_id) is None
 
 
 def test_admin_add_example_sets_normalized_phrase_and_dirty_flag(client_with_sqlite) -> None:
@@ -244,6 +721,110 @@ def test_admin_tester_save_example_marks_catalog_dirty(client_with_sqlite) -> No
         ).first()
         assert dirty is not None
         assert dirty.value == "true"
+
+
+def test_admin_tester_v2_renderizes_selector(client_with_sqlite) -> None:
+    client, _engine = client_with_sqlite
+
+    response = client.get("/admin/tester")
+
+    assert response.status_code == 200
+    assert "API Version" in response.text
+    assert "Client Capabilities" in response.text
+    assert 'value="v2"' in response.text
+
+
+def test_admin_tester_v2_shows_custom_command(
+    client_with_sqlite,
+    monkeypatch,
+) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        session.add(
+            CommandDefinition(
+                code="ROTATE_SCREEN",
+                display_name="Rotate Screen",
+                command_type="custom",
+                status="active",
+                client_action_key="rotate_screen",
+            )
+        )
+        session.commit()
+
+    monkeypatch.setattr(
+        admin_router_module,
+        "normalize_command_text_v2",
+        lambda **kwargs: NormalizeV2Response(
+            ok=True,
+            raw_text=kwargs["text"],
+            normalized_text=kwargs["text"].lower(),
+            language=kwargs.get("language_hint"),
+            commands=[
+                DynamicCommand(
+                    code="ROTATE_SCREEN",
+                    type="custom",
+                    client_action_key="rotate_screen",
+                    confidence=0.91,
+                    method="llm",
+                    params={"angle": 90},
+                    raw_fragment="rota noventa grados",
+                )
+            ],
+            needs_confirmation=False,
+        ),
+    )
+
+    response = client.post(
+        "/admin/tester/run",
+        data={
+            "text": "rota pantalla dos noventa grados",
+            "language_hint": "es",
+            "api_version": "v2",
+            "client_capabilities": '["rotate_screen"]',
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Dynamic Commands" in response.text
+    assert "ROTATE_SCREEN" in response.text
+    assert "rotate_screen" in response.text
+    assert "Save phrase as example" in response.text
+
+
+def test_admin_tester_save_example_for_custom_command(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        command = CommandDefinition(
+            code="ROTATE_SCREEN",
+            display_name="Rotate Screen",
+            command_type="custom",
+            status="active",
+            client_action_key="rotate_screen",
+        )
+        session.add(command)
+        session.commit()
+        session.refresh(command)
+        command_id = command.id
+
+    response = client.post(
+        "/admin/tester/save-example",
+        data={
+            "phrase": "rota pantalla dos noventa grados",
+            "command_id": str(command_id),
+            "language": "es",
+            "match_type": "semantic",
+            "api_version": "v2",
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    with Session(engine) as session:
+        example = session.exec(select(CommandExample)).first()
+        assert example is not None
+        assert example.command_id == command_id
+        assert example.normalized_phrase == "rota pantalla dos noventa grados"
+        assert example.source.value == "admin"
 
 
 def test_admin_catalog_publish_creates_active_version(client_with_sqlite, monkeypatch) -> None:
@@ -623,11 +1204,20 @@ def test_admin_audio_tester_normalize_uses_mocked_audio_flow(
 def test_admin_can_publish_catalog(client_with_sqlite, monkeypatch) -> None:
     client, engine = client_with_sqlite
     with Session(engine) as session:
+        command = CommandDefinition(
+            code=CommandName.START_STREAM,
+            display_name="Start Stream",
+            category="Capture / Stream",
+        )
+        session.add(command)
+        session.commit()
+        session.refresh(command)
         session.add(
-            CommandDefinition(
-                code=CommandName.START_STREAM,
-                display_name="Start Stream",
-                category="Capture / Stream",
+            CommandExample(
+                command_id=command.id,
+                phrase="start stream",
+                normalized_phrase="start stream",
+                enabled=True,
             )
         )
         session.commit()
@@ -641,3 +1231,25 @@ def test_admin_can_publish_catalog(client_with_sqlite, monkeypatch) -> None:
 
     response = client.post("/admin/catalog/publish", follow_redirects=False)
     assert response.status_code == 303
+
+
+def test_admin_publish_catalog_shows_validation_errors(client_with_sqlite) -> None:
+    client, engine = client_with_sqlite
+    with Session(engine) as session:
+        session.add(
+            CommandDefinition(
+                code="CUSTOM_INVALID_PUBLISH",
+                display_name="Invalid Publish",
+                command_type="custom",
+                status="draft",
+                client_action_key="invalid_publish",
+                enabled=True,
+            )
+        )
+        session.commit()
+
+    response = client.post("/admin/catalog/publish")
+
+    assert response.status_code == 400
+    assert "Catalog publish failed" in response.text
+    assert "At least one enabled example is required" in response.text

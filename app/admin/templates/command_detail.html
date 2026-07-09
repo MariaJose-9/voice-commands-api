@@ -16,8 +16,15 @@
     </div>
   </div>
 
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
   <form method="post" action="/admin/commands/{{ command.id }}/update" class="form-stack">
     <label><span>Code</span><input type="text" value="{{ command.code }}" disabled></label>
+    <label><span>Type</span><input type="text" value="{{ command.command_type }}" disabled></label>
+    <label><span>Status</span><input type="text" value="{{ command.status }}" disabled></label>
+    <label><span>Protected</span><input type="text" value="{{ 'yes' if command.protected else 'no' }}" disabled></label>
     <label><span>Display Name</span><input type="text" name="display_name" value="{{ command.display_name }}" required></label>
     <label><span>Description</span><input type="text" name="description" value="{{ command.description or '' }}"></label>
     <label><span>Category</span><input type="text" name="category" value="{{ command.category or '' }}"></label>
@@ -26,6 +33,99 @@
     <label class="checkbox"><input type="checkbox" name="enabled" {% if command.enabled %}checked{% endif %}> <span>Enabled</span></label>
     <button class="button" type="submit">Save Command</button>
   </form>
+
+  <section class="subpanel">
+    <h3>Lifecycle</h3>
+    <div class="action-row">
+      {% if command.command_type == "custom" and command.status != "disabled" %}
+      <form method="post" action="/admin/commands/{{ command.id }}/disable">
+        <button class="button button-secondary button-small" type="submit">Disable</button>
+      </form>
+      {% endif %}
+      {% if command.command_type == "custom" and command.status != "deprecated" %}
+      <form method="post" action="/admin/commands/{{ command.id }}/deprecate">
+        <button class="button button-secondary button-small" type="submit">Deprecate</button>
+      </form>
+      {% endif %}
+      {% if command.command_type == "custom" and command.status == "draft" and not command.protected %}
+      <form method="post" action="/admin/commands/{{ command.id }}/delete">
+        <button class="button button-danger button-small" type="submit">Delete draft</button>
+      </form>
+      {% else %}
+      <span class="muted">Hard delete is only available for unprotected custom draft commands.</span>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="subpanel">
+    <h3>Parameters / Entities</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Slot</th>
+          <th>Entity Type</th>
+          <th>Target Field</th>
+          <th>Required</th>
+          <th>Multiple</th>
+          <th>Default</th>
+          <th>Extraction Hint</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for parameter in parameters %}
+        {% set entity_type = entity_type_by_id.get(parameter.entity_type_id) %}
+        <tr>
+          <td colspan="8">
+            <form method="post" action="/admin/command-parameters/{{ parameter.id }}/update" class="inline-form">
+              <input type="text" name="slot_name" value="{{ parameter.slot_name }}" required>
+              <select name="entity_type_id" required>
+                {% for option in entity_types %}
+                <option value="{{ option.id }}" {% if option.id == parameter.entity_type_id %}selected{% endif %}>{{ option.code }}</option>
+                {% endfor %}
+              </select>
+              <input type="text" name="target_field" value="{{ parameter.target_field }}" required>
+              <label class="checkbox"><input type="checkbox" name="required" {% if parameter.required %}checked{% endif %}> <span>required</span></label>
+              <label class="checkbox"><input type="checkbox" name="allow_multiple" {% if parameter.allow_multiple %}checked{% endif %}> <span>multiple</span></label>
+              <input type="text" name="default_value" value="{{ parameter.default_value or '' }}" placeholder="default">
+              <input type="text" name="description" value="{{ parameter.description or '' }}" placeholder="description">
+              <input type="text" name="extraction_hint" value="{{ parameter.extraction_hint or '' }}" placeholder="extraction hint">
+              <span class="muted">{{ entity_type.display_name if entity_type else "-" }}</span>
+              <button class="button button-small" type="submit">Update</button>
+            </form>
+            <div class="action-row">
+              <form method="post" action="/admin/command-parameters/{{ parameter.id }}/delete">
+                <button class="button button-danger button-small" type="submit">Delete / Disable</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="subpanel">
+    <h3>Add Parameter</h3>
+    <form method="post" action="/admin/commands/{{ command.id }}/parameters" class="form-stack">
+      <label><span>Slot Name</span><input type="text" name="slot_name" placeholder="monitor" required></label>
+      <label>
+        <span>Entity Type</span>
+        <select name="entity_type_id" required>
+          {% for entity_type in entity_types %}
+          <option value="{{ entity_type.id }}">{{ entity_type.code }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label><span>Target Field</span><input type="text" name="target_field" placeholder="monitor" required></label>
+      <label class="checkbox"><input type="checkbox" name="required"> <span>Required</span></label>
+      <label class="checkbox"><input type="checkbox" name="allow_multiple"> <span>Allow Multiple</span></label>
+      <label><span>Default Value</span><input type="text" name="default_value"></label>
+      <label><span>Description</span><input type="text" name="description"></label>
+      <label><span>Extraction Hint</span><input type="text" name="extraction_hint"></label>
+      <button class="button" type="submit">Add Parameter</button>
+    </form>
+  </section>
 
   <section class="subpanel">
     <h3>Examples</h3>
@@ -65,6 +165,15 @@
               <form method="post" action="/admin/examples/{{ example.id }}/delete">
                 <button class="button button-danger button-small" type="submit">Delete</button>
               </form>
+              {% if command.command_type == "custom" %}
+              <form method="post" action="/admin/tester/run">
+                <input type="hidden" name="text" value="{{ example.phrase }}">
+                <input type="hidden" name="language_hint" value="{{ example.language or '' }}">
+                <input type="hidden" name="api_version" value="v2">
+                <input type="hidden" name="client_capabilities" value="{{ command.client_action_key or '' }}">
+                <button class="button button-secondary button-small" type="submit">Test v2</button>
+              </form>
+              {% endif %}
             </div>
           </td>
         </tr>

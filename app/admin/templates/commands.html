@@ -11,12 +11,16 @@
     </div>
     <div class="pill-row">
       <span class="pill">Pending publish: {{ "yes" if catalog_dirty else "no" }}</span>
+      <a class="button button-small" href="/admin/commands/new">New custom command</a>
     </div>
   </div>
   <table class="data-table">
     <thead>
       <tr>
         <th>Code</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Protected</th>
         <th>Display Name</th>
         <th>Category</th>
         <th>Enabled</th>
@@ -29,6 +33,9 @@
       {% for row in commands %}
       <tr>
         <td>{{ row.command.code }}</td>
+        <td>{{ row.command.command_type }}</td>
+        <td>{{ row.command.status }}</td>
+        <td>{{ "yes" if row.command.protected else "no" }}</td>
         <td>{{ row.command.display_name }}</td>
         <td>{{ row.command.category or "-" }}</td>
         <td>{{ "yes" if row.command.enabled else "no" }}</td>

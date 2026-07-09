@@ -55,6 +55,86 @@ class CommandUpdateForm(BaseModel):
         )
 
 
+class CommandCreateForm(BaseModel):
+    """Form payload for creating a custom command definition."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(default="")
+    display_name: str = Field(default="")
+    description: str = Field(default="")
+    category: str = Field(default="")
+    client_action_key: str = Field(default="")
+    enabled: bool = Field(default=True)
+    priority: int = Field(default=50)
+    min_confidence: float = Field(default=0.72)
+
+    @classmethod
+    def as_form(
+        cls,
+        code: str = Form(...),
+        display_name: str = Form(...),
+        description: str = Form(""),
+        category: str = Form(""),
+        client_action_key: str = Form(...),
+        enabled: bool = Form(False),
+        priority: int = Form(...),
+        min_confidence: float = Form(...),
+    ) -> "CommandCreateForm":
+        return cls(
+            code=code,
+            display_name=display_name,
+            description=description,
+            category=category,
+            client_action_key=client_action_key,
+            enabled=enabled,
+            priority=priority,
+            min_confidence=min_confidence,
+        )
+
+
+class CommandParameterCreateForm(BaseModel):
+    """Form payload for creating command parameters."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    slot_name: str = Field(default="")
+    entity_type_id: int
+    target_field: str = Field(default="")
+    required: bool = Field(default=False)
+    allow_multiple: bool = Field(default=False)
+    default_value: str = Field(default="")
+    description: str = Field(default="")
+    extraction_hint: str = Field(default="")
+
+    @classmethod
+    def as_form(
+        cls,
+        slot_name: str = Form(...),
+        entity_type_id: int = Form(...),
+        target_field: str = Form(...),
+        required: bool = Form(False),
+        allow_multiple: bool = Form(False),
+        default_value: str = Form(""),
+        description: str = Form(""),
+        extraction_hint: str = Form(""),
+    ) -> "CommandParameterCreateForm":
+        return cls(
+            slot_name=slot_name,
+            entity_type_id=entity_type_id,
+            target_field=target_field,
+            required=required,
+            allow_multiple=allow_multiple,
+            default_value=default_value,
+            description=description,
+            extraction_hint=extraction_hint,
+        )
+
+
+class CommandParameterUpdateForm(CommandParameterCreateForm):
+    """Form payload for updating command parameters."""
+
+
 class ExampleCreateForm(BaseModel):
     """Form payload for creating a command example."""
 
@@ -124,6 +204,44 @@ class EntityValueCreateForm(BaseModel):
         enabled: bool = Form(False),
     ) -> "EntityValueCreateForm":
         return cls(value=value, label=label, enabled=enabled)
+
+
+class EntityTypeCreateForm(BaseModel):
+    """Form payload for creating entity types."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(default="")
+    display_name: str = Field(default="")
+    description: str = Field(default="")
+    data_type: str = Field(default="string")
+    unit: str = Field(default="")
+    dynamic_values: bool = Field(default=False)
+    min_value: str = Field(default="")
+    max_value: str = Field(default="")
+
+    @classmethod
+    def as_form(
+        cls,
+        code: str = Form(...),
+        display_name: str = Form(...),
+        description: str = Form(""),
+        data_type: str = Form("string"),
+        unit: str = Form(""),
+        dynamic_values: bool = Form(False),
+        min_value: str = Form(""),
+        max_value: str = Form(""),
+    ) -> "EntityTypeCreateForm":
+        return cls(
+            code=code,
+            display_name=display_name,
+            description=description,
+            data_type=data_type,
+            unit=unit,
+            dynamic_values=dynamic_values,
+            min_value=min_value,
+            max_value=max_value,
+        )
 
 
 class EntityValueUpdateForm(BaseModel):

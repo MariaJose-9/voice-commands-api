@@ -34,6 +34,7 @@ else:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 CATALOG_YAML_PATH = Path(__file__).resolve().parent.parent / "commands" / "catalog.yml"
+CORE_COMMAND_CODES = {command.value for command in CommandName}
 _CATALOG_CACHE: Optional[list[dict[str, Any]]] = None
 _CATALOG_METADATA = {
     "source": "yaml_fallback",
@@ -114,7 +115,13 @@ def _load_yaml_fallback() -> list[dict[str, Any]]:
 
 
 def _build_catalog_from_db(session: Session) -> list[dict[str, Any]]:
-    """Build the catalog shape from SQLModel rows."""
+    """Build the legacy v1 catalog shape from SQLModel rows.
+
+    The v1 matchers still use the fixed CommandName enum. Custom commands are
+    resolved through the v2 CommandSpecService and must not leak into this
+    catalog, otherwise v1 fuzzy/semantic matching can fail while coercing codes
+    like ROTATE_SCREEN into CommandName.
+    """
 
     if (
         select is None
@@ -127,6 +134,9 @@ def _build_catalog_from_db(session: Session) -> list[dict[str, Any]]:
     command_rows = session.exec(
         select(CommandDefinition)
         .where(CommandDefinition.enabled.is_(True))
+        .where(CommandDefinition.deleted_at.is_(None))
+        .where(CommandDefinition.status.notin_(["disabled", "deprecated"]))
+        .where(CommandDefinition.command_type == "core")
         .order_by(desc(CommandDefinition.priority), CommandDefinition.code)
     ).all()
 
@@ -146,6 +156,15 @@ def _build_catalog_from_db(session: Session) -> list[dict[str, Any]]:
     catalog: list[dict[str, Any]] = []
     for row in command_rows:
         command_value = row.code.value if isinstance(row.code, CommandName) else str(row.code)
+        if command_value not in CORE_COMMAND_CODES:
+            logger.warning(
+                "catalog skipped non-core command in v1 catalog",
+                extra={
+                    "event": "catalog_skip_non_core_command",
+                    "command": command_value,
+                },
+            )
+            continue
         catalog.append(
             {
                 "command": command_value,

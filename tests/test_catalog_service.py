@@ -81,6 +81,68 @@ def test_get_active_catalog_returns_mysql_data(sqlite_session: Session) -> None:
     assert metadata["cached"] is True
 
 
+def test_get_active_catalog_excludes_custom_commands(sqlite_session: Session) -> None:
+    sqlite_session.add_all(
+        [
+            CommandDefinition(
+                code=CommandName.START_STREAM,
+                display_name="Start Stream",
+                description="Start a live stream",
+                category="Capture / Stream",
+                enabled=True,
+                priority=80,
+                command_type="core",
+                protected=True,
+                status="active",
+            ),
+            CommandDefinition(
+                code="ROTATE_SCREEN",
+                display_name="Rotate Screen",
+                description="Rotate a display",
+                category="Custom",
+                enabled=True,
+                priority=90,
+                command_type="custom",
+                protected=False,
+                status="active",
+                client_action_key="rotate_screen",
+            ),
+        ]
+    )
+    sqlite_session.commit()
+
+    core_command = sqlite_session.exec(
+        sqlmodel.select(CommandDefinition).where(
+            CommandDefinition.code == CommandName.START_STREAM.value
+        )
+    ).one()
+    custom_command = sqlite_session.exec(
+        sqlmodel.select(CommandDefinition).where(CommandDefinition.code == "ROTATE_SCREEN")
+    ).one()
+    sqlite_session.add_all(
+        [
+            CommandExample(
+                command_id=core_command.id,
+                phrase="start stream",
+                normalized_phrase="start stream",
+                enabled=True,
+            ),
+            CommandExample(
+                command_id=custom_command.id,
+                phrase="rotate screen",
+                normalized_phrase="rotate screen",
+                enabled=True,
+            ),
+        ]
+    )
+    sqlite_session.commit()
+
+    result = catalog_service.get_active_catalog(session=sqlite_session)
+
+    assert [item["command"] for item in result] == ["START_STREAM"]
+    assert result[0]["examples"] == ["start stream"]
+
+
 def test_get_active_catalog_uses_yaml_fallback_when_db_is_empty(
     sqlite_session: Session,
 ) -> None:

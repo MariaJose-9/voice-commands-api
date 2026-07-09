@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import app.ollama_fallback as ollama_fallback
 from app.schemas import CommandName, MatchMethod, NormalizedCommand
+from app.services.command_spec_service import CommandParameterSpec, CommandSpec
 from app.services import size_validation_service
 
 
@@ -386,6 +387,131 @@ def test_llm_prompt_includes_monitor_target_canonicalization_rule() -> None:
     assert "SELECT_MONITOR" in prompt
     assert "Necesito que el monitor 2 este en 75 pulgadas" in prompt
     assert '"SET_SIZE","monitor":2,"size_inches":75' in prompt
+
+
+def test_llm_prompt_contains_custom_active_command(monkeypatch) -> None:
+    monkeypatch.setattr(
+        ollama_fallback,
+        "get_active_command_specs",
+        lambda: [
+            CommandSpec(
+                code="ROTATE_SCREEN",
+                display_name="Rotate Screen",
+                description="rotate selected screen",
+                command_type="custom",
+                status="active",
+                client_action_key="rotate_screen",
+                examples=[
+                    "rota el monitor 2 noventa grados",
+                    "gira la pantalla dos a 90 grados",
+                ],
+                parameters=[
+                    CommandParameterSpec(
+                        slot_name="monitor",
+                        entity_code="monitor",
+                        target_field="monitor",
+                        required=False,
+                        allow_multiple=False,
+                        data_type="enum",
+                    ),
+                    CommandParameterSpec(
+                        slot_name="angle",
+                        entity_code="angle_degrees",
+                        target_field="angle",
+                        required=True,
+                        allow_multiple=False,
+                        data_type="integer",
+                        unit="degrees",
+                        dynamic_values=True,
+                        min_value=0,
+                        max_value=360,
+                    ),
+                ],
+            )
+        ],
+    )
+
+    prompt = ollama_fallback.build_llm_command_prompt(
+        raw_text="rota el monitor 2 noventa grados",
+        normalized_text="rota el monitor 2 noventa grados",
+    )
+
+    assert "ROTATE_SCREEN" in prompt
+    assert '"command_type": "custom"' in prompt
+    assert '"client_action_key": "rotate_screen"' in prompt
+    assert "rotate selected screen" in prompt
+    assert "rota el monitor 2 noventa grados" in prompt
+
+
+def test_llm_prompt_contains_custom_parameters(monkeypatch) -> None:
+    monkeypatch.setattr(
+        ollama_fallback,
+        "get_active_command_specs",
+        lambda: [
+            CommandSpec(
+                code="ROTATE_SCREEN",
+                display_name="Rotate Screen",
+                command_type="custom",
+                status="active",
+                client_action_key="rotate_screen",
+                parameters=[
+                    CommandParameterSpec(
+                        slot_name="angle",
+                        entity_code="angle_degrees",
+                        target_field="angle",
+                        required=True,
+                        allow_multiple=False,
+                        description="Rotation angle.",
+                        extraction_hint="Extract degrees from the utterance.",
+                        data_type="integer",
+                        unit="degrees",
+                        dynamic_values=True,
+                        min_value=0,
+                        max_value=360,
+                    ),
+                ],
+            )
+        ],
+    )
+
+    prompt = ollama_fallback.build_llm_command_prompt(
+        raw_text="gira 90 grados",
+        normalized_text="gira 90 grados",
+    )
+
+    assert '"slot_name": "angle"' in prompt
+    assert '"entity": "angle_degrees"' in prompt
+    assert '"target_field": "angle"' in prompt
+    assert '"required": true' in prompt
+    assert '"data_type": "integer"' in prompt
+    assert '"unit": "degrees"' in prompt
+    assert '"min_value": 0.0' in prompt
+    assert '"max_value": 360.0' in prompt
+    assert "Extract degrees from the utterance." in prompt
+
+
+def test_llm_prompt_does_not_contain_disabled_command(monkeypatch) -> None:
+    monkeypatch.setattr(
+        ollama_fallback,
+        "get_active_command_specs",
+        lambda: [
+            CommandSpec(
+                code="ACTIVE_CUSTOM",
+                display_name="Active Custom",
+                command_type="custom",
+                status="active",
+                client_action_key="active_custom",
+            )
+        ],
+    )
+
+    prompt = ollama_fallback.build_llm_command_prompt(
+        raw_text="test",
+        normalized_text="test",
+    )
+
+    assert "ACTIVE_CUSTOM" in prompt
+    assert "DISABLED_CUSTOM" not in prompt
 
 
 def test_llm_canonicalization_does_not_duplicate_existing_select_monitor() -> None:

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
+from pydantic import field_validator
 from sqlalchemy import JSON, Column, DateTime, Enum as SAEnum, String, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
@@ -85,7 +86,9 @@ class AdminUser(SQLModel, table=True):
 
 class CommandDefinition(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    code: CommandName = Field(index=True, unique=True)
+    code: str = Field(
+        sa_column=Column(String(255), unique=True, index=True, nullable=False)
+    )
     display_name: str = Field(sa_column=Column(String(255), nullable=False))
     description: Optional[str] = Field(
         default=None,
@@ -98,6 +101,25 @@ class CommandDefinition(SQLModel, table=True):
     enabled: bool = Field(default=True)
     priority: int = Field(default=50)
     min_confidence: float = Field(default=0.72)
+    command_type: str = Field(
+        default="core",
+        sa_column=Column(String(32), nullable=False, default="core"),
+    )
+    status: str = Field(
+        default="active",
+        sa_column=Column(String(32), nullable=False, default="active"),
+    )
+    protected: bool = Field(default=False)
+    client_action_key: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(255), nullable=True),
+    )
+    deleted_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+    created_by: Optional[int] = Field(default=None, foreign_key="adminuser.id")
+    updated_by: Optional[int] = Field(default=None, foreign_key="adminuser.id")
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),
@@ -138,6 +160,57 @@ class CommandExample(SQLModel, table=True):
     )
 
 
+class CommandParameter(SQLModel, table=True):
+    """Parameter definition for a command.
+
+    Parameters describe how a command should extract structured values from
+    text, without changing the stable /v1 command response contract.
+    """
+
+    __table_args__ = (UniqueConstraint("command_id", "slot_name"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    command_id: int = Field(foreign_key="commanddefinition.id", index=True)
+    slot_name: str = Field(sa_column=Column(String(255), nullable=False))
+    entity_type_id: int = Field(foreign_key="entitytype.id", index=True)
+    target_field: str = Field(sa_column=Column(String(255), nullable=False))
+    required: bool = Field(default=False)
+    allow_multiple: bool = Field(default=False)
+    default_value: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(1024), nullable=True),
+    )
+    description: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(1024), nullable=True),
+    )
+    extraction_hint: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(1024), nullable=True),
+    )
+    created_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+    updated_at: datetime = Field(
+        default_factory=utc_now,
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+    deleted_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
+
+    @field_validator("slot_name", "target_field")
+    @classmethod
+    def validate_required_string(cls, value: str) -> str:
+        """Reject empty logical names used by extractors and responses."""
+
+        if not value or not value.strip():
+            raise ValueError("CommandParameter slot_name and target_field are required.")
+        return value.strip()
+
+
 class EntityType(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     code: str = Field(
@@ -148,7 +221,23 @@ class EntityType(SQLModel, table=True):
         default=None,
         sa_column=Column(String(1024), nullable=True),
     )
+    data_type: str = Field(
+        default="string",
+        sa_column=Column(String(32), nullable=False, default="string"),
+    )
+    unit: Optional[str] = Field(
+        default=None,
+        sa_column=Column(String(64), nullable=True),
+    )
+    protected: bool = Field(default=False)
+    dynamic_values: bool = Field(default=False)
+    min_value: Optional[float] = Field(default=None)
+    max_value: Optional[float] = Field(default=None)
     enabled: bool = Field(default=True)
+    deleted_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+    )
     created_at: datetime = Field(
         default_factory=utc_now,
         sa_column=Column(DateTime(timezone=True), nullable=False),

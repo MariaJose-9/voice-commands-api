@@ -17,6 +17,45 @@
     </div>
   </div>
 
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <section class="subpanel">
+    <h3>Metadata</h3>
+    <table class="data-table">
+      <tbody>
+        <tr><th>data_type</th><td>{{ entity_type.data_type }}</td></tr>
+        <tr><th>unit</th><td>{{ entity_type.unit or "-" }}</td></tr>
+        <tr><th>dynamic_values</th><td>{{ "yes" if entity_type.dynamic_values else "no" }}</td></tr>
+        <tr><th>min_value</th><td>{{ entity_type.min_value if entity_type.min_value is not none else "-" }}</td></tr>
+        <tr><th>max_value</th><td>{{ entity_type.max_value if entity_type.max_value is not none else "-" }}</td></tr>
+        <tr><th>protected</th><td>{{ "yes" if entity_type.protected else "no" }}</td></tr>
+        <tr><th>enabled</th><td>{{ "yes" if entity_type.enabled else "no" }}</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Used By Commands</h4>
+    {% if used_by_commands %}
+    <ul>
+      {% for command in used_by_commands %}
+      <li><a href="/admin/commands/{{ command.id }}">{{ command.code }}</a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No active command parameter uses this entity type.</p>
+    {% endif %}
+
+    <div class="action-row">
+      <form method="post" action="/admin/entities/{{ entity_type.id }}/disable">
+        <button class="button button-secondary button-small" type="submit">Disable Entity Type</button>
+      </form>
+      <form method="post" action="/admin/entities/{{ entity_type.id }}/delete">
+        <button class="button button-danger button-small" type="submit">Delete Entity Type</button>
+      </form>
+    </div>
+  </section>
+
   <section class="subpanel">
     <h3>Add Value</h3>
     <form method="post" action="/admin/entities/{{ entity_type.id }}/values" class="form-stack">

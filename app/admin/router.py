@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
+import re
 import time
 from typing import Any, Optional
 
@@ -21,9 +23,13 @@ from app.admin.auth import (
     get_current_admin_user,
 )
 from app.admin.forms import (
+    CommandCreateForm,
+    CommandParameterCreateForm,
+    CommandParameterUpdateForm,
     CommandUpdateForm,
     EntityAliasCreateForm,
     EntityAliasUpdateForm,
+    EntityTypeCreateForm,
     EntityValueCreateForm,
     EntityValueUpdateForm,
     ExampleCreateForm,
@@ -78,6 +84,7 @@ from app.db.models import (
     CatalogVersion,
     CommandDefinition,
     CommandExample,
+    CommandParameter,
     EntityType,
     EntityValue,
     EntityValueAlias,
@@ -86,6 +93,7 @@ from app.db.models import (
     NormalizationLog,
     ReviewStatus,
     UserRole,
+    utc_now,
 )
 from app.db.session import Session as SessionFactory, engine
 from app.preprocessor import normalize_text
@@ -107,10 +115,15 @@ from app.services.runtime_settings_service import (
     get_str_setting,
 )
 from app.services.settings_service import is_catalog_dirty, set_catalog_dirty
+from app.v2.normalizer import normalize_command_text_v2
 
 
 router = APIRouter(tags=["admin"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
+CUSTOM_COMMAND_CODE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
+CLIENT_ACTION_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
+SNAKE_CASE_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
+ENTITY_DATA_TYPES = {"string", "integer", "float", "enum", "boolean"}
 MATCHING_SETTINGS = {
     "FUZZY_THRESHOLD",
     "SEMANTIC_THRESHOLD",
@@ -441,8 +454,88 @@ def _normalize_optional_text(value: str) -> Optional[str]:
     return stripped or None
 
 
+def _parse_optional_float(value: str) -> float | None:
+    stripped = value.strip()
+    if not stripped:
+        return None
+    return float(stripped)
+
+
+def _parse_client_capabilities(value: str) -> list[str] | None:
+    stripped = value.strip()
+    if not stripped:
+        return None
+    try:
+        parsed = json.loads(stripped)
+        if isinstance(parsed, list):
+            return [str(item).strip() for item in parsed if str(item).strip()]
+    except json.JSONDecodeError:
+        pass
+    capabilities = [
+        item.strip()
+        for chunk in stripped.splitlines()
+        for item in chunk.split(",")
+        if item.strip()
+    ]
+    return capabilities or None
+
+
 def _parse_match_type(value: str) -> MatchType:
     return MatchType(value)
+
+
+def _validate_entity_type_form(
+    session,
+    form: EntityTypeCreateForm,
+    *,
+    entity_type_id: int | None = None,
+) -> str | None:
+    code = form.code.strip()
+    if not code:
+        return "Entity code is required."
+    if not SNAKE_CASE_PATTERN.fullmatch(code):
+        return "Entity code must be snake_case."
+    if not form.display_name.strip():
+        return "Display name is required."
+    if form.data_type not in ENTITY_DATA_TYPES:
+        return "Invalid data type."
+
+    try:
+        min_value = _parse_optional_float(form.min_value)
+        max_value = _parse_optional_float(form.max_value)
+    except ValueError:
+        return "Min and max values must be numeric."
+
+    if (
+        form.dynamic_values
+        and form.data_type in {"integer", "float"}
+        and min_value is not None
+        and max_value is not None
+        and max_value <= min_value
+    ):
+        return "Max value must be greater than min value."
+
+    duplicate = session.exec(
+        select(EntityType).where(
+            EntityType.code == code,
+            EntityType.deleted_at.is_(None),
+        )
+    ).first()
+    if duplicate is not None and duplicate.id != entity_type_id:
+        return "Entity code already exists."
+
+    return None
+
+
+def _entity_type_usage(session, entity_type_id: int) -> list[CommandDefinition]:
+    return session.exec(
+        select(CommandDefinition)
+        .join(CommandParameter, CommandParameter.command_id == CommandDefinition.id)
+        .where(CommandParameter.entity_type_id == entity_type_id)
+        .where(CommandParameter.deleted_at.is_(None))
+        .where(CommandDefinition.deleted_at.is_(None))
+        .order_by(CommandDefinition.code)
+    ).all()
 
 
 def _load_command_detail_context(command_id: int) -> Optional[dict[str, Any]]:
@@ -458,11 +551,31 @@ def _load_command_detail_context(command_id: int) -> Optional[dict[str, Any]]:
             .where(CommandExample.command_id == command_id)
             .order_by(CommandExample.normalized_phrase)
         ).all()
+        parameters = session.exec(
+            select(CommandParameter)
+            .where(CommandParameter.command_id == command_id)
+            .where(CommandParameter.deleted_at.is_(None))
+            .order_by(CommandParameter.slot_name)
+        ).all()
+        entity_types = session.exec(
+            select(EntityType)
+            .where(EntityType.enabled.is_(True))
+            .where(EntityType.deleted_at.is_(None))
+            .order_by(EntityType.code)
+        ).all()
+        entity_type_by_id = {
+            entity_type.id: entity_type
+            for entity_type in entity_types
+            if entity_type.id is not None
+        }
         dirty = is_catalog_dirty(session)
 
     return {
         "command": command,
         "examples": examples,
+        "parameters": parameters,
+        "entity_types": entity_types,
+        "entity_type_by_id": entity_type_by_id,
         "catalog_dirty": dirty,
     }
 
@@ -486,12 +599,14 @@ def _load_entity_detail_context(entity_type_id: int) -> Optional[dict[str, Any]]
         aliases_by_value: dict[int, list[EntityValueAlias]] = {}
         for alias in aliases:
             aliases_by_value.setdefault(alias.entity_value_id, []).append(alias)
+        used_by_commands = _entity_type_usage(session, entity_type_id)
         dirty = is_catalog_dirty(session)
 
     return {
         "entity_type": entity_type,
         "values": values,
         "aliases_by_value": aliases_by_value,
+        "used_by_commands": used_by_commands,
         "catalog_dirty": dirty,
     }
 
@@ -630,8 +745,11 @@ def _load_tester_context() -> dict[str, Any]:
         "catalog_dirty": catalog_dirty,
         "semantic_enabled": ENABLE_SEMANTIC_MATCHER,
         "debug_data": None,
+        "v2_result": None,
+        "api_version": "v1",
         "text": "",
         "language_hint": "",
+        "client_capabilities": "",
     }
 
 
@@ -661,6 +779,7 @@ def _load_catalog_versions_context() -> dict[str, Any]:
             "active_version": None,
             "import_error": None,
             "import_summary": None,
+            "publish_errors": None,
         }
 
     with SessionFactory(engine) as session:
@@ -686,6 +805,7 @@ def _load_catalog_versions_context() -> dict[str, Any]:
             "active_version": get_active_version(session),
             "import_error": None,
             "import_summary": None,
+            "publish_errors": None,
         }
 
 
@@ -933,7 +1053,17 @@ async def admin_catalog_publish(
         )
 
     with SessionFactory(engine) as session:
-        publish_catalog(session, actor_user_id=getattr(current_user, "id", None))
+        result = publish_catalog(session, actor_user_id=getattr(current_user, "id", None))
+        if not result.get("published"):
+            context = _load_catalog_versions_context()
+            context["current_user"] = current_user
+            context["publish_errors"] = result.get("errors", [])
+            return _render(
+                request,
+                "catalog_versions.html",
+                context,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
 
     return RedirectResponse(
         url="/admin/catalog/versions",
@@ -1051,6 +1181,174 @@ def admin_commands_list(request: Request) -> HTMLResponse:
     )
 
 
+def _command_form_context(
+    request: Request,
+    current_user,
+    *,
+    form: CommandCreateForm | None = None,
+    error: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "current_user": current_user,
+        "form": form
+        or CommandCreateForm(
+            code="",
+            display_name="",
+            description="",
+            category="",
+            client_action_key="",
+            enabled=True,
+            priority=50,
+            min_confidence=0.72,
+        ),
+        "error": error,
+        "catalog_dirty": False,
+    }
+
+
+def _validate_custom_command_form(session, form: CommandCreateForm) -> str | None:
+    code = form.code.strip()
+    client_action_key = form.client_action_key.strip()
+    display_name = form.display_name.strip()
+
+    if not code:
+        return "Code is required."
+    if not CUSTOM_COMMAND_CODE_PATTERN.fullmatch(code):
+        return "Code must use uppercase letters, numbers, and underscores."
+    if code == CommandName.UNKNOWN.value:
+        return "UNKNOWN is reserved and cannot be used as a custom command."
+    if code in {command.value for command in CommandName}:
+        return "Code conflicts with a protected core command."
+    if not display_name:
+        return "Display name is required."
+    if not client_action_key:
+        return "Client action key is required."
+    if not CLIENT_ACTION_KEY_PATTERN.fullmatch(client_action_key):
+        return "Client action key must be snake_case."
+
+    duplicate = session.exec(
+        select(CommandDefinition).where(CommandDefinition.code == code)
+    ).first()
+    if duplicate is not None:
+        return "Code already exists."
+
+    return None
+
+
+def _render_command_detail_error(
+    request: Request,
+    current_user,
+    command_id: int,
+    message: str,
+) -> HTMLResponse:
+    context = _load_command_detail_context(command_id)
+    if context is None:
+        return _render(
+            request,
+            "command_detail.html",
+            {
+                "current_user": current_user,
+                "command": None,
+                "examples": [],
+                "catalog_dirty": False,
+                "error": "Command not found.",
+            },
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+    context["current_user"] = current_user
+    context["error"] = message
+    return _render(
+        request,
+        "command_detail.html",
+        context,
+        status_code=status.HTTP_400_BAD_REQUEST,
+    )
+
+
+@router.get("/admin/commands/new", response_class=HTMLResponse)
+def admin_command_new(request: Request) -> HTMLResponse:
+    current_user = _require_role(request, UserRole.ADMIN)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+
+    return _render(
+        request,
+        "command_new.html",
+        _command_form_context(request, current_user),
+    )
+
+
+@router.post("/admin/commands/new")
+async def admin_command_create(
+    request: Request,
+    form: CommandCreateForm = Depends(CommandCreateForm.as_form),
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.ADMIN)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return _render(
+            request,
+            "command_new.html",
+            _command_form_context(
+                request,
+                current_user,
+                form=form,
+                error="Database is unavailable.",
+            ),
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    with SessionFactory(engine) as session:
+        error = _validate_custom_command_form(session, form)
+        if error is not None:
+            return _render(
+                request,
+                "command_new.html",
+                _command_form_context(request, current_user, form=form, error=error),
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        command = CommandDefinition(
+            code=form.code.strip(),
+            display_name=form.display_name.strip(),
+            description=_normalize_optional_text(form.description),
+            category=_normalize_optional_text(form.category),
+            enabled=form.enabled,
+            priority=form.priority,
+            min_confidence=form.min_confidence,
+            command_type="custom",
+            status="draft",
+            protected=False,
+            client_action_key=form.client_action_key.strip(),
+            created_by=getattr(current_user, "id", None),
+            updated_by=getattr(current_user, "id", None),
+        )
+        session.add(command)
+        session.commit()
+        session.refresh(command)
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="custom_command_create",
+            entity_type="command_definition",
+            entity_id=command.id,
+            payload={
+                "code": command.code,
+                "client_action_key": command.client_action_key,
+            },
+        )
+        command_id = command.id
+
+    return _redirect_to_admin_command(command_id)
+
+
 @router.get("/admin/commands/{command_id}", response_class=HTMLResponse)
 def admin_command_detail(request: Request, command_id: int) -> HTMLResponse:
     current_user = _require_role(request, UserRole.VIEWER)
@@ -1091,13 +1389,29 @@ def admin_entities_list(request: Request) -> HTMLResponse:
     catalog_dirty = False
     if SessionFactory is not None and engine is not None:
         with SessionFactory(engine) as session:
-            types = session.exec(select(EntityType).order_by(EntityType.code)).all()
+            types = session.exec(
+                select(EntityType)
+                .where(EntityType.deleted_at.is_(None))
+                .order_by(EntityType.code)
+            ).all()
             values = session.exec(select(EntityValue)).all()
             value_counts: dict[int, int] = {}
             for value in values:
                 value_counts[value.entity_type_id] = value_counts.get(value.entity_type_id, 0) + 1
+            usage_counts: dict[int, int] = {}
+            parameters = session.exec(
+                select(CommandParameter).where(CommandParameter.deleted_at.is_(None))
+            ).all()
+            for parameter in parameters:
+                usage_counts[parameter.entity_type_id] = (
+                    usage_counts.get(parameter.entity_type_id, 0) + 1
+                )
             entity_types = [
-                {"entity_type": item, "value_count": value_counts.get(item.id or 0, 0)}
+                {
+                    "entity_type": item,
+                    "value_count": value_counts.get(item.id or 0, 0),
+                    "used_by_commands": usage_counts.get(item.id or 0, 0),
+                }
                 for item in types
             ]
             catalog_dirty = is_catalog_dirty(session)
@@ -1111,6 +1425,90 @@ def admin_entities_list(request: Request) -> HTMLResponse:
             "catalog_dirty": catalog_dirty,
         },
     )
+
+
+@router.get("/admin/entities/new", response_class=HTMLResponse)
+def admin_entity_new_page(request: Request) -> HTMLResponse:
+    current_user = _require_role(request, UserRole.EDITOR)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+
+    catalog_dirty = False
+    if SessionFactory is not None and engine is not None:
+        with SessionFactory(engine) as session:
+            catalog_dirty = is_catalog_dirty(session)
+
+    return _render(
+        request,
+        "entity_new.html",
+        {
+            "current_user": current_user,
+            "catalog_dirty": catalog_dirty,
+            "data_types": sorted(ENTITY_DATA_TYPES),
+            "error": None,
+        },
+    )
+
+
+@router.post("/admin/entities/new")
+async def admin_entity_create(
+    request: Request,
+    form: EntityTypeCreateForm = Depends(EntityTypeCreateForm.as_form),
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.EDITOR)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return RedirectResponse(url="/admin/entities", status_code=status.HTTP_303_SEE_OTHER)
+
+    with SessionFactory(engine) as session:
+        error = _validate_entity_type_form(session, form)
+        if error is not None:
+            return _render(
+                request,
+                "entity_new.html",
+                {
+                    "current_user": current_user,
+                    "catalog_dirty": is_catalog_dirty(session),
+                    "data_types": sorted(ENTITY_DATA_TYPES),
+                    "error": error,
+                    "form": form,
+                },
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        entity_type = EntityType(
+            code=form.code.strip(),
+            display_name=form.display_name.strip(),
+            description=_normalize_optional_text(form.description),
+            data_type=form.data_type,
+            unit=_normalize_optional_text(form.unit),
+            dynamic_values=form.dynamic_values,
+            min_value=_parse_optional_float(form.min_value),
+            max_value=_parse_optional_float(form.max_value),
+            protected=False,
+            enabled=True,
+        )
+        session.add(entity_type)
+        session.commit()
+        session.refresh(entity_type)
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="entity_type_create",
+            entity_type="entity_type",
+            entity_id=entity_type.id,
+            payload={"code": entity_type.code},
+        )
+        entity_type_id = entity_type.id
+
+    return _redirect_to_admin_entity(entity_type_id)
 
 
 @router.get("/admin/entities/{entity_type_id}", response_class=HTMLResponse)
@@ -1349,15 +1747,30 @@ async def admin_tester_run(request: Request) -> HTMLResponse:
     form = await request.form()
     text = str(form.get("text") or "")
     language_hint = str(form.get("language_hint") or "").strip() or None
+    api_version = str(form.get("api_version") or "v1").strip() or "v1"
+    client_capabilities_raw = str(form.get("client_capabilities") or "").strip()
+    client_capabilities = _parse_client_capabilities(client_capabilities_raw)
     payload = NormalizeRequest(text=text, language_hint=language_hint, context=None)
 
     context = _load_tester_context()
+    debug_data = build_debug_response(payload) if api_version == "v1" else None
+    v2_result = None
+    if api_version == "v2":
+        v2_result = normalize_command_text_v2(
+            text=text,
+            language_hint=language_hint,
+            context=None,
+            client_capabilities=client_capabilities,
+        ).model_dump(mode="json")
     context.update(
         {
             "current_user": current_user,
             "text": text,
             "language_hint": language_hint or "",
-            "debug_data": build_debug_response(payload),
+            "api_version": api_version,
+            "client_capabilities": client_capabilities_raw,
+            "debug_data": debug_data,
+            "v2_result": v2_result,
         }
     )
     return _render(request, "tester.html", context)
@@ -1640,6 +2053,317 @@ async def admin_command_update(
     return _redirect_to_admin_command(command_id)
 
 
+@router.post("/admin/commands/{command_id}/disable")
+async def admin_command_disable(
+    request: Request,
+    command_id: int,
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.ADMIN)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return _redirect_to_admin_command(command_id)
+
+    with SessionFactory(engine) as session:
+        command = session.get(CommandDefinition, command_id)
+        if command is None:
+            return _redirect_to_admin_command(command_id)
+        command.status = "disabled"
+        command.enabled = False
+        command.updated_by = getattr(current_user, "id", None)
+        session.add(command)
+        session.commit()
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="command_disable",
+            entity_type="command_definition",
+            entity_id=command_id,
+            payload={"code": command.code},
+        )
+
+    return _redirect_to_admin_command(command_id)
+
+
+@router.post("/admin/commands/{command_id}/deprecate")
+async def admin_command_deprecate(
+    request: Request,
+    command_id: int,
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.ADMIN)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return _redirect_to_admin_command(command_id)
+
+    with SessionFactory(engine) as session:
+        command = session.get(CommandDefinition, command_id)
+        if command is None:
+            return _redirect_to_admin_command(command_id)
+        command.status = "deprecated"
+        command.enabled = False
+        command.updated_by = getattr(current_user, "id", None)
+        session.add(command)
+        session.commit()
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="command_deprecate",
+            entity_type="command_definition",
+            entity_id=command_id,
+            payload={"code": command.code},
+        )
+
+    return _redirect_to_admin_command(command_id)
+
+
+@router.post("/admin/commands/{command_id}/delete")
+async def admin_command_delete(
+    request: Request,
+    command_id: int,
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.ADMIN)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return _redirect_to_admin_command(command_id)
+
+    with SessionFactory(engine) as session:
+        command = session.get(CommandDefinition, command_id)
+        if command is None:
+            return _redirect_to_admin_command(command_id)
+        if (
+            command.protected
+            or command.command_type != "custom"
+            or command.status != "draft"
+        ):
+            return _render_command_detail_error(
+                request,
+                current_user,
+                command_id,
+                "Only unprotected custom draft commands can be hard deleted.",
+            )
+
+        code = command.code
+        session.delete(command)
+        session.commit()
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="command_delete",
+            entity_type="command_definition",
+            entity_id=command_id,
+            payload={"code": code},
+        )
+
+    return RedirectResponse(url="/admin/commands", status_code=status.HTTP_303_SEE_OTHER)
+
+
+def _validate_command_parameter_form(
+    session,
+    form: CommandParameterCreateForm,
+    *,
+    command_id: int,
+    parameter_id: int | None = None,
+) -> str | None:
+    slot_name = form.slot_name.strip()
+    target_field = form.target_field.strip()
+    if not slot_name:
+        return "Slot name is required."
+    if not SNAKE_CASE_PATTERN.fullmatch(slot_name):
+        return "Slot name must be snake_case."
+    if not target_field:
+        return "Target field is required."
+    if not SNAKE_CASE_PATTERN.fullmatch(target_field):
+        return "Target field must be snake_case."
+
+    entity_type = session.get(EntityType, form.entity_type_id)
+    if (
+        entity_type is None
+        or not entity_type.enabled
+        or entity_type.deleted_at is not None
+    ):
+        return "Entity type must exist and be enabled."
+
+    duplicate_query = select(CommandParameter).where(
+        CommandParameter.command_id == command_id,
+        CommandParameter.slot_name == slot_name,
+        CommandParameter.deleted_at.is_(None),
+    )
+    duplicate = session.exec(duplicate_query).first()
+    if duplicate is not None and duplicate.id != parameter_id:
+        return "Parameter slot_name already exists for this command."
+
+    return None
+
+
+@router.post("/admin/commands/{command_id}/parameters")
+async def admin_command_add_parameter(
+    request: Request,
+    command_id: int,
+    form: CommandParameterCreateForm = Depends(CommandParameterCreateForm.as_form),
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.EDITOR)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return _redirect_to_admin_command(command_id)
+
+    with SessionFactory(engine) as session:
+        command = session.get(CommandDefinition, command_id)
+        if command is None:
+            return _redirect_to_admin_command(command_id)
+        error = _validate_command_parameter_form(session, form, command_id=command_id)
+        if error is not None:
+            return _render_command_detail_error(request, current_user, command_id, error)
+
+        parameter = CommandParameter(
+            command_id=command_id,
+            slot_name=form.slot_name.strip(),
+            entity_type_id=form.entity_type_id,
+            target_field=form.target_field.strip(),
+            required=form.required,
+            allow_multiple=form.allow_multiple,
+            default_value=_normalize_optional_text(form.default_value),
+            description=_normalize_optional_text(form.description),
+            extraction_hint=_normalize_optional_text(form.extraction_hint),
+        )
+        session.add(parameter)
+        session.commit()
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="command_parameter_create",
+            entity_type="command_parameter",
+            entity_id=parameter.id,
+            payload={"command_id": command_id, "slot_name": parameter.slot_name},
+        )
+
+    return _redirect_to_admin_command(command_id)
+
+
+@router.post("/admin/command-parameters/{parameter_id}/update")
+async def admin_command_parameter_update(
+    request: Request,
+    parameter_id: int,
+    form: CommandParameterUpdateForm = Depends(CommandParameterUpdateForm.as_form),
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.EDITOR)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return RedirectResponse(url="/admin/commands", status_code=status.HTTP_303_SEE_OTHER)
+
+    with SessionFactory(engine) as session:
+        parameter = session.get(CommandParameter, parameter_id)
+        if parameter is None or parameter.deleted_at is not None:
+            return RedirectResponse(url="/admin/commands", status_code=status.HTTP_303_SEE_OTHER)
+        command_id = parameter.command_id
+        command = session.get(CommandDefinition, command_id)
+        if command is None:
+            return RedirectResponse(url="/admin/commands", status_code=status.HTTP_303_SEE_OTHER)
+        error = _validate_command_parameter_form(
+            session,
+            form,
+            command_id=command_id,
+            parameter_id=parameter_id,
+        )
+        if error is not None:
+            return _render_command_detail_error(request, current_user, command_id, error)
+
+        parameter.slot_name = form.slot_name.strip()
+        parameter.entity_type_id = form.entity_type_id
+        parameter.target_field = form.target_field.strip()
+        parameter.required = form.required
+        parameter.allow_multiple = form.allow_multiple
+        parameter.default_value = _normalize_optional_text(form.default_value)
+        parameter.description = _normalize_optional_text(form.description)
+        parameter.extraction_hint = _normalize_optional_text(form.extraction_hint)
+        session.add(parameter)
+        session.commit()
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="command_parameter_update",
+            entity_type="command_parameter",
+            entity_id=parameter_id,
+            payload={"command_id": command_id, "slot_name": parameter.slot_name},
+        )
+
+    return _redirect_to_admin_command(command_id)
+
+
+@router.post("/admin/command-parameters/{parameter_id}/delete")
+async def admin_command_parameter_delete(
+    request: Request,
+    parameter_id: int,
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.EDITOR)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return RedirectResponse(url="/admin/commands", status_code=status.HTTP_303_SEE_OTHER)
+
+    with SessionFactory(engine) as session:
+        parameter = session.get(CommandParameter, parameter_id)
+        if parameter is None:
+            return RedirectResponse(url="/admin/commands", status_code=status.HTTP_303_SEE_OTHER)
+        command_id = parameter.command_id
+        command = session.get(CommandDefinition, command_id)
+        if command is None:
+            return RedirectResponse(url="/admin/commands", status_code=status.HTTP_303_SEE_OTHER)
+
+        if command.protected and parameter.required:
+            return _render_command_detail_error(
+                request,
+                current_user,
+                command_id,
+                "Required parameters for protected core commands cannot be deleted.",
+            )
+
+        slot_name = parameter.slot_name
+        if command.command_type == "custom" and command.status == "draft":
+            session.delete(parameter)
+        else:
+            parameter.deleted_at = utc_now()
+            session.add(parameter)
+        session.commit()
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="command_parameter_delete",
+            entity_type="command_parameter",
+            entity_id=parameter_id,
+            payload={"command_id": command_id, "slot_name": slot_name},
+        )
+
+    return _redirect_to_admin_command(command_id)
+
+
 @router.post("/admin/commands/{command_id}/examples")
 async def admin_command_add_example(
     request: Request,
@@ -1746,6 +2470,135 @@ async def admin_entity_add_value(
             )
 
     return _redirect_to_admin_entity(entity_type_id)
+
+
+@router.post("/admin/entities/{entity_type_id}/disable")
+async def admin_entity_type_disable(
+    request: Request,
+    entity_type_id: int,
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.EDITOR)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return RedirectResponse(url="/admin/entities", status_code=status.HTTP_303_SEE_OTHER)
+
+    with SessionFactory(engine) as session:
+        entity_type = session.get(EntityType, entity_type_id)
+        if entity_type is None:
+            return RedirectResponse(url="/admin/entities", status_code=status.HTTP_303_SEE_OTHER)
+        if entity_type.protected:
+            context = _load_entity_detail_context(entity_type_id) or {}
+            context.update(
+                {
+                    "current_user": current_user,
+                    "error": "Protected entity types cannot be disabled.",
+                }
+            )
+            return _render(
+                request,
+                "entity_detail.html",
+                context,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        used_by_commands = _entity_type_usage(session, entity_type_id)
+        if used_by_commands:
+            context = _load_entity_detail_context(entity_type_id) or {}
+            context.update(
+                {
+                    "current_user": current_user,
+                    "error": "Entity type is used by active command parameters.",
+                }
+            )
+            return _render(
+                request,
+                "entity_detail.html",
+                context,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        entity_type.enabled = False
+        session.add(entity_type)
+        session.commit()
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="entity_type_disable",
+            entity_type="entity_type",
+            entity_id=entity_type_id,
+            payload={"code": entity_type.code},
+        )
+
+    return _redirect_to_admin_entity(entity_type_id)
+
+
+@router.post("/admin/entities/{entity_type_id}/delete")
+async def admin_entity_type_delete(
+    request: Request,
+    entity_type_id: int,
+    _: None = Depends(require_csrf),
+):
+    current_user = _require_role(request, UserRole.EDITOR)
+    if current_user is None:
+        return _redirect_to_login()
+    if current_user is False:
+        return _forbidden_response()
+    if SessionFactory is None or engine is None:
+        return RedirectResponse(url="/admin/entities", status_code=status.HTTP_303_SEE_OTHER)
+
+    with SessionFactory(engine) as session:
+        entity_type = session.get(EntityType, entity_type_id)
+        if entity_type is None:
+            return RedirectResponse(url="/admin/entities", status_code=status.HTTP_303_SEE_OTHER)
+        if entity_type.protected:
+            context = _load_entity_detail_context(entity_type_id) or {}
+            context.update(
+                {
+                    "current_user": current_user,
+                    "error": "Protected entity types cannot be deleted.",
+                }
+            )
+            return _render(
+                request,
+                "entity_detail.html",
+                context,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        used_by_commands = _entity_type_usage(session, entity_type_id)
+        if used_by_commands:
+            context = _load_entity_detail_context(entity_type_id) or {}
+            context.update(
+                {
+                    "current_user": current_user,
+                    "error": "Entity type is used by active command parameters.",
+                }
+            )
+            return _render(
+                request,
+                "entity_detail.html",
+                context,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        entity_type.enabled = False
+        entity_type.deleted_at = utc_now()
+        session.add(entity_type)
+        session.commit()
+        set_catalog_dirty(session, True)
+        _audit_log(
+            session,
+            actor_user_id=getattr(current_user, "id", None),
+            action="entity_type_delete",
+            entity_type="entity_type",
+            entity_id=entity_type_id,
+            payload={"code": entity_type.code},
+        )
+
+    return RedirectResponse(url="/admin/entities", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/admin/entity-values/{value_id}/update")
