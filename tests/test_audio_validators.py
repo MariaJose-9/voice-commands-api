@@ -48,12 +48,20 @@ def test_validate_audio_content_type_accepts_audio_ogg() -> None:
     validate_audio_content_type("audio/ogg", ".ogg")
 
 
+def test_validate_audio_content_type_accepts_application_ogg() -> None:
+    validate_audio_content_type("application/ogg", ".ogg")
+
+
 def test_validate_audio_content_type_accepts_audio_mp4_for_m4a() -> None:
     validate_audio_content_type("audio/mp4", ".m4a")
 
 
 def test_validate_audio_content_type_accepts_audio_x_m4a() -> None:
     validate_audio_content_type("audio/x-m4a", ".m4a")
+
+
+def test_validate_audio_content_type_accepts_audio_m4a() -> None:
+    validate_audio_content_type("audio/m4a", ".m4a")
 
 
 def test_validate_audio_content_type_accepts_video_mp4_for_mp4() -> None:
@@ -64,8 +72,24 @@ def test_validate_audio_content_type_accepts_audio_wav() -> None:
     validate_audio_content_type("audio/wav", ".wav")
 
 
+def test_validate_audio_content_type_accepts_audio_wave() -> None:
+    validate_audio_content_type("audio/wave", ".wav")
+
+
+def test_validate_audio_content_type_accepts_audio_vnd_wave() -> None:
+    validate_audio_content_type("audio/vnd.wave", ".wav")
+
+
 def test_validate_audio_content_type_accepts_audio_webm() -> None:
     validate_audio_content_type("audio/webm", ".webm")
+
+
+def test_validate_audio_content_type_accepts_audio_x_aac() -> None:
+    validate_audio_content_type("audio/x-aac", ".aac")
+
+
+def test_validate_audio_content_type_accepts_audio_x_flac() -> None:
+    validate_audio_content_type("audio/x-flac", ".flac")
 
 
 def test_validate_audio_content_type_accepts_octet_stream_for_valid_extension() -> None:
