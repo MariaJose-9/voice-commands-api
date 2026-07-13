@@ -457,6 +457,27 @@ def test_normalize_ignores_ollama_failure(monkeypatch) -> None:
     assert [command.command for command in response.commands] == [CommandName.UNKNOWN]
 
 
+def test_normalize_noise_negation_does_not_match_size(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+
+    response = normalize_command_text("No, no, no, no.", language_hint="es")
+
+    assert response.ok is False
+    assert response.needs_confirmation is True
+    assert response.message == "No command detected."
+    assert [command.command for command in response.commands] == [CommandName.UNKNOWN]
+
+
+def test_normalize_single_no_does_not_match_size(monkeypatch) -> None:
+    _disable_optional_matchers(monkeypatch)
+
+    response = normalize_command_text("no", language_hint="es")
+
+    assert response.ok is False
+    assert response.needs_confirmation is True
+    assert [command.command for command in response.commands] == [CommandName.UNKNOWN]
+
+
 def test_normalize_rejects_text_above_max_length(monkeypatch) -> None:
     monkeypatch.setattr(normalizer_module, "MAX_TEXT_LENGTH", 10)
     monkeypatch.setattr(

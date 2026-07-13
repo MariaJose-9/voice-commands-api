@@ -18,6 +18,26 @@ _ENTITY_ONLY_COMMANDS = {
     CommandName.SET_LAYOUT,
     CommandName.SET_SIZE,
 }
+_NOISE_TOKENS = {
+    "no",
+    "nope",
+    "nah",
+    "mmm",
+    "um",
+    "uh",
+    "eh",
+    "ah",
+    "ok",
+    "okay",
+    "vale",
+}
+
+
+def _is_noise_fragment(normalized_text: str) -> bool:
+    """Return True for ASR noise/negation fragments that are not commands."""
+
+    tokens = normalized_text.split()
+    return bool(tokens) and all(token in _NOISE_TOKENS for token in tokens)
 
 
 @lru_cache(maxsize=1)
@@ -77,6 +97,9 @@ def _has_required_entities(command: CommandName, entities: dict[str, Any]) -> bo
 def get_fuzzy_candidates(normalized_text: str, limit: int = 5) -> list[dict]:
     """Return the top fuzzy candidates for debugging."""
 
+    if _is_noise_fragment(normalized_text):
+        return []
+
     scored = []
     for row in _flatten_examples():
         score = _score_text(normalized_text, row["normalized_example"])
@@ -96,6 +119,9 @@ def match_by_fuzzy(
     normalized_text: str, threshold: float = 88.0
 ) -> Optional[NormalizedCommand]:
     """Return the best fuzzy match above the threshold, or None."""
+
+    if _is_noise_fragment(normalized_text):
+        return None
 
     entities = extract_entities(normalized_text)
     best_row: Optional[dict[str, Any]] = None

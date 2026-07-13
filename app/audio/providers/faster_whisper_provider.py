@@ -13,6 +13,20 @@ from app.audio.providers.base import TranscriptionProvider
 from app.audio.schemas import AudioSegment, AudioTranscriptionResponse
 
 
+_AUTO_LANGUAGE_HINTS = {"", "auto", "automatic", "detect", "detect_language", "none", "null"}
+
+
+def _normalize_language_hint(language_hint: Optional[str]) -> Optional[str]:
+    """Map UI/API autodetect values to None for faster-whisper."""
+
+    if language_hint is None:
+        return None
+    normalized = str(language_hint).strip().lower()
+    if normalized in _AUTO_LANGUAGE_HINTS:
+        return None
+    return normalized
+
+
 class FasterWhisperProvider(TranscriptionProvider):
     """Lazy-loaded faster-whisper provider."""
 
@@ -65,7 +79,9 @@ class FasterWhisperProvider(TranscriptionProvider):
             raise ValueError("Audio file does not exist.")
 
         model = self.load()
-        language = language_hint or str(self.settings["language_default"]) or None
+        language = _normalize_language_hint(language_hint)
+        if language is None:
+            language = _normalize_language_hint(str(self.settings["language_default"]))
 
         try:
             segments_iter, info = self._transcribe_with_model(model, file_path, language)

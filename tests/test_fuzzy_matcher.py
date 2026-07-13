@@ -16,6 +16,11 @@ def test_match_by_fuzzy_does_not_return_entity_only_command_without_entities() -
     assert command is None
 
 
+def test_match_by_fuzzy_ignores_noise_negation() -> None:
+    assert fuzzy_matcher.match_by_fuzzy(normalize_text("no")) is None
+    assert fuzzy_matcher.get_fuzzy_candidates(normalize_text("no")) == []
+
+
 def test_get_fuzzy_candidates_surfaces_monitor_typo() -> None:
     candidates = fuzzy_matcher.get_fuzzy_candidates(normalize_text("monitr one"))
     assert candidates[0]["command"] == CommandName.SELECT_MONITOR.value

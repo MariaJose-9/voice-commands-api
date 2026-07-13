@@ -142,6 +142,43 @@ def test_transcribe_audio_file_passes_language_hint(monkeypatch, tmp_path) -> No
     assert _FakeWhisperModel.transcribe_calls[-1]["language"] == "es"
 
 
+def test_transcribe_audio_file_treats_auto_language_hint_as_autodetect(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    _install_fake_faster_whisper(monkeypatch)
+    _reset_service_state(monkeypatch)
+    monkeypatch.setattr(transcription_service, "ENABLE_AUDIO_TRANSCRIPTION", True)
+    monkeypatch.setattr(transcription_service, "TRANSCRIPTION_ENGINE", "faster_whisper")
+    audio_path = tmp_path / "sample.mp3"
+    audio_path.write_bytes(b"fake-audio")
+
+    transcription_service.transcribe_audio_file(audio_path, language_hint="auto")
+
+    assert _FakeWhisperModel.transcribe_calls[-1]["language"] is None
+
+
+def test_transcribe_audio_file_treats_auto_default_language_as_autodetect(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    _install_fake_faster_whisper(monkeypatch)
+    _reset_service_state(monkeypatch)
+    monkeypatch.setattr(transcription_service, "ENABLE_AUDIO_TRANSCRIPTION", True)
+    monkeypatch.setattr(transcription_service, "TRANSCRIPTION_ENGINE", "faster_whisper")
+    monkeypatch.setattr(
+        runtime_settings_service,
+        "get_audio_str_setting",
+        lambda key, default: "auto" if key == "TRANSCRIPTION_LANGUAGE_DEFAULT" else default,
+    )
+    audio_path = tmp_path / "sample.mp3"
+    audio_path.write_bytes(b"fake-audio")
+
+    transcription_service.transcribe_audio_file(audio_path)
+
+    assert _FakeWhisperModel.transcribe_calls[-1]["language"] is None
+
+
 def test_transcribe_audio_file_converts_to_wav_when_direct_decode_fails(
     monkeypatch,
     tmp_path,

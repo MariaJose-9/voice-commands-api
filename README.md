@@ -912,6 +912,8 @@ curl -X POST http://localhost:8000/v1/audio/transcribe \
   -F "language_hint=es"
 ```
 
+Para autodetección de idioma, omite `language_hint` o envía `language_hint=auto`.
+
 Respuesta de ejemplo:
 
 ```json

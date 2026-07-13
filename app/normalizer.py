@@ -42,6 +42,26 @@ _ZOOM_IN_INTENT_PATTERN = re.compile(r"\b(acerca|acercar|acercalo|zoom\s+in)\b")
 _DIRECTION_INTENT_PATTERN = re.compile(
     r"\b(izquierda|derecha|arriba|abajo|left|right|up|down)\b"
 )
+_NO_COMMAND_TOKENS = {
+    "no",
+    "nope",
+    "nah",
+    "mmm",
+    "um",
+    "uh",
+    "eh",
+    "ah",
+    "ok",
+    "okay",
+    "vale",
+}
+
+
+def _is_noise_only_text(normalized_text: str) -> bool:
+    """Return True when ASR produced only non-command noise/negation tokens."""
+
+    tokens = re.findall(r"\b[a-z]+\b", normalized_text.lower())
+    return bool(tokens) and all(token in _NO_COMMAND_TOKENS for token in tokens)
 
 
 def _unknown_command(raw_fragment: str) -> NormalizedCommand:
@@ -341,6 +361,17 @@ def normalize_command_text(
         )
 
     normalized_text = normalize_text(text)
+    if _is_noise_only_text(normalized_text):
+        unknown = _unknown_command(normalized_text)
+        return NormalizeResponse(
+            ok=False,
+            raw_text=raw_text,
+            normalized_text=normalized_text,
+            language=language_hint,
+            commands=[unknown],
+            needs_confirmation=True,
+            message="No command detected.",
+        )
 
     if llm_command_mode == "primary":
         llm_response = _call_llm_interpreter(

@@ -57,7 +57,7 @@ El endpoint recibe `multipart/form-data`.
 Campos:
 
 * `file`: requerido. Archivo de audio `.ogg`, `.mp3`, `.m4a`, `.mp4`, `.wav`, `.webm`, `.aac` o `.flac`.
-* `language_hint`: opcional. Ejemplo: `es`, `en`.
+* `language_hint`: opcional. Ejemplo: `es`, `en`. Para autodetección, omítelo o usa `auto`.
 * `context_json`: opcional. JSON string con contexto del cliente.
 
 Ejemplo:
